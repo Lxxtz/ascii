@@ -1,187 +1,161 @@
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.linear_model import LinearRegression
-import warnings
-warnings.filterwarnings('ignore')
+import datetime
 
-from data_generator import generate_bank_data
-
-def calculate_liquidity_metrics(df):
-    """
-    Calculates LCR and NSFR.
-    """
-    # LCR (Liquidity Coverage Ratio)
-    # Basel III approach proxy: HQLA / (Expected 30-day outflows - Expected 30-day inflows)
-    # Let's approximate expected 30-day run-off as 10% of total deposits pool.
-    expected_30d_outflow = df['Total_Deposits_Pool'] * 0.10
-    
-    # Floor to avoid division by zero
-    expected_30d_outflow = expected_30d_outflow.apply(lambda x: max(x, 100))
-    
-    df['LCR'] = (df['HQLA'] / expected_30d_outflow).clip(lower=0, upper=5) # Cap at 500% for stability
-    
-    # Provide a capped LCR for plot readability if it spirals to infinity
-    # Normal LCR is around 1.0 (100%) to 1.5 (150%)
-    
-    # NSFR (Net Stable Funding Ratio)
-    # NSFR = ASF / RSF
-    df['NSFR'] = df['ASF'] / df['RSF']
-    
-    # Calculate daily Net Cash Flow
-    df['Net_Cash_Flow'] = (df['Deposits'] + df['Loan_Repayment']) - (df['Withdrawals'] + df['Loans_Given'])
-    
-    # Net Liquidity Position (NLP)
-    # Start with base HQLA buffer. 
-    df['Cumulative_Net_Cash_Flow'] = df['Net_Cash_Flow'].cumsum()
-    df['NLP'] = df['HQLA'].iloc[0] + df['Cumulative_Net_Cash_Flow']
-    
-    return df
-
-def predict_survival_horizon(df, current_day, lookback_days=14):
-    """
-    Predicts how many days the bank can survive if the recent trend continues.
-    Uses linear extrapolation based on the recent NLP trajectory.
-    """
-    if current_day < lookback_days:
-        return np.nan  # Not enough data to predict
+class BankSimulationEngine:
+    def __init__(self):
+        self.reset()
         
-    y = df['NLP'].iloc[current_day - lookback_days:current_day].values.reshape(-1, 1)
-    x = np.arange(lookback_days).reshape(-1, 1)
-    
-    model = LinearRegression()
-    model.fit(x, y)
-    
-    trend_slope = model.coef_[0][0]
-    current_nlp = y[-1][0]
-    
-    if trend_slope >= 0:
-        return 365  # Unlimited survival, trending positive
-    else:
-        # How many days until NLP hits 0?
-        days_to_zero = -current_nlp / trend_slope
-        return int(max(0, min(days_to_zero, 365)))
-
-def plot_trends(df):
-    plt.style.use('dark_background')
-    fig, axes = plt.subplots(3, 1, figsize=(12, 14), sharex=True)
-    
-    dates = df['Date']
-    
-    # Plot 1: LCR and NSFR
-    ax1 = axes[0]
-    ax1.plot(dates, df['LCR'] * 100, label='LCR (%)', color='#00ff00', linewidth=2)
-    ax1.plot(dates, df['NSFR'] * 100, label='NSFR (%)', color='#00ffff', linewidth=2)
-    ax1.axhline(100, color='red', linestyle='--', label='Regulatory Minimum (100%)')
-    ax1.set_title('Regulatory Liquidity Ratios (LCR & NSFR)', fontsize=14)
-    ax1.set_ylabel('Ratio (%)')
-    ax1.legend(loc='upper right')
-    ax1.grid(True, alpha=0.3)
-    
-    # Plot 2: HQLA & Net Liquidity Position
-    ax2 = axes[1]
-    ax2.plot(dates, df['HQLA'], label='HQLA Buffer', color='#ffaa00', linewidth=2)
-    ax2.plot(dates, df['NLP'], label='Net Liquidity Position (NLP)', color='#ff00ff', linewidth=2)
-    ax2.axhline(0, color='red', linestyle='--', label='Insolvency Line (0)')
-    ax2.set_title('Bank Liquidity Health', fontsize=14)
-    ax2.set_ylabel('Value (Thousands)')
-    ax2.legend(loc='upper right')
-    ax2.grid(True, alpha=0.3)
-    
-    # Plot 3: Survival Horizon Prediction
-    ax3 = axes[2]
-    # Cap survival days for plotting
-    survival_days = df['Predicted_Survival_Days'].replace(999, 100) # Cap at 100 for viz
-    ax3.plot(dates, survival_days, label='Predicted Survival Horizon (Days)', color='white', linewidth=2)
-    ax3.fill_between(dates, 0, survival_days, color='white', alpha=0.1)
-    
-    # Highlight crisis
-    crisis_starts = df[df['Predicted_Survival_Days'] < 30]['Date'].min()
-    if pd.notna(crisis_starts):
-        ax3.axvline(x=crisis_starts, color='red', linestyle=':', label=f'Crisis Trigger (< 30 days survival)')
+    def reset(self):
+        self.day = 0
+        self.is_crisis = False
+        self.has_failed = False
+        self.repo_rate = 5.0
         
-    ax3.set_title('Survival Horizon Forecast', fontsize=14)
-    ax3.set_xlabel('Date')
-    ax3.set_ylabel('Days Remaining')
-    ax3.set_ylim(0, 100)
-    ax3.legend(loc='upper right')
-    ax3.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
-    plt.savefig('liquidity_trends.png', dpi=300)
-    print("Trend plot saved to liquidity_trends.png")
-    
-def main():
-    print("Generating synthetic bank data...")
-    df = generate_bank_data(days=365)
-    
-    print("Calculating LCR, NSFR, and NLP metrics...")
-    df = calculate_liquidity_metrics(df)
-    
-    print("Predicting daily survival horizon...")
-    survival_predictions = []
-    for i in range(len(df)):
-        survival_predictions.append(predict_survival_horizon(df, i, lookback_days=14))
+        self.current_deposit_pool = 100000000.0  # $100M
+        self.current_loan_pool = 70000000.0      # $70M
+        self.current_hqla = 20000000.0           # 20% of Deposits
+        self.capital = 15000000.0                # $15M
         
-    df['Predicted_Survival_Days'] = survival_predictions
-    
-    # Output critical points
-    crisis_day = df[(df['NLP'] < 0) | ((df['LCR'] * 100) < 100)].first_valid_index()
-    if crisis_day is not None:
-        failure_date = df.iloc[crisis_day]['Date']
-        print(f"\n--- LIQUIDITY CRISIS DETECTED ---")
-        print(f"Bank predicted to fall into liquidity shortfall on: {failure_date.date()}")
-        print(f"Metrics on {failure_date.date()}:")
-        print(f"LCR:  {df.iloc[crisis_day]['LCR']*100:.2f}%")
-        print(f"NSFR: {df.iloc[crisis_day]['NSFR']*100:.2f}%")
-        print(f"NLP:  {df.iloc[crisis_day]['NLP']:,.2f}")
-    else:
-        print("\n--- BANK REMAINS SOLVENT THROUGH 365 DAYS ---")
-    
-    print("\nSaving data to bank_liquidity_metrics.csv...")
-    df.to_csv('bank_liquidity_metrics.csv', index=False)
-    
-    print("Plotting graphs...")
-    plot_trends(df)
-
-def run_simulation_api():
-    df = generate_bank_data(days=365)
-    df = calculate_liquidity_metrics(df)
-    
-    survival_predictions = []
-    for i in range(len(df)):
-        survival_predictions.append(predict_survival_horizon(df, i, lookback_days=14))
-    df['Predicted_Survival_Days'] = survival_predictions
-    
-    # Extract telemetry
-    crisis_day = df[(df['NLP'] < 0) | ((df['LCR'] * 100) < 100)].first_valid_index()
-    
-    if crisis_day is not None:
-        failure_date = df.iloc[crisis_day]['Date'].strftime('%Y-%m-%d')
-        lcr_fail = float(df.iloc[crisis_day]['LCR'] * 100)
-        nsfr_fail = float(df.iloc[crisis_day]['NSFR'] * 100)
-        nlp_fail = float(df.iloc[crisis_day]['NLP'])
-        is_crisis = True
-    else:
-        failure_date = "N/A"
-        lcr_fail = float(df.iloc[-1]['LCR'] * 100)
-        nsfr_fail = float(df.iloc[-1]['NSFR'] * 100)
-        nlp_fail = float(df.iloc[-1]['NLP'])
-        is_crisis = False
+        self.start_date = datetime.date(2026, 1, 1)
+        self.cumulative_net_cash = 0
+        self.base_hqla = self.current_hqla
         
-    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-    records = df[['Date', 'LCR', 'NSFR', 'NLP', 'HQLA', 'Predicted_Survival_Days', 'Repo_Rate', 'Market_Rate', 'Loans_Given', 'Loan_Repayment']].replace({np.nan: None}).to_dict(orient='records')
-    
-    return {
-        "isCrisis": is_crisis,
-        "failureDate": failure_date,
-        "metricsAtFailure": {
-            "LCR": round(lcr_fail, 2),
-            "NSFR": round(nsfr_fail, 2),
-            "NLP": round(nlp_fail, 2)
-        },
-        "timeSeries": records
-    }
-
-if __name__ == "__main__":
-    main()
+        self.market_sentiment = 0.0  # 0 is neutral
+        self.latest_news = None
+        
+        self.history = []
+        
+    def trigger_crisis(self):
+        self.is_crisis = True
+        
+    def step(self):
+        current_date = self.start_date + datetime.timedelta(days=self.day)
+        
+        repo_change = np.random.normal(0, 0.05)
+        self.repo_rate += repo_change
+        
+        if not self.is_crisis:
+            # Normal operations - organically growing slightly or stable over time
+            # Make sure minimum incoming is slightly higher than outgoing organically
+            daily_in_base = self.current_deposit_pool * np.random.uniform(0.002, 0.006)
+            daily_out_base = self.current_deposit_pool * np.random.uniform(0.002, 0.0055)
+            
+            # Massive day-to-day random spikes to make the chart highly fluctuant
+            spike_in = daily_in_base * np.random.uniform(-0.6, 0.8)
+            spike_out = daily_out_base * np.random.uniform(-0.6, 0.8)
+            
+            daily_in = max(0, daily_in_base + spike_in)
+            daily_out = max(0, daily_out_base + spike_out)
+            
+            # Balance loans given vs repaid organically
+            daily_l_given = self.current_deposit_pool * np.random.uniform(0.001, 0.003)
+            # Loans repaid based on existing loan pool but scaled closer to balance
+            daily_l_repay = self.current_loan_pool * np.random.uniform(0.0015, 0.004)
+        else:
+            # Market Crisis!
+            daily_in = self.current_deposit_pool * np.random.uniform(0.0001, 0.001)
+            crisis_days = len([h for h in self.history if h.get('is_crisis')])
+            escalation = min(1.0 + crisis_days * 0.05, 5.0)
+            daily_out = self.current_deposit_pool * np.random.uniform(0.002, 0.01) * escalation
+            daily_l_given = self.current_deposit_pool * np.random.uniform(0.000, 0.0005)
+            daily_l_repay = self.current_loan_pool * np.random.uniform(0.0005, 0.0015)
+            
+        # --- MARKET NEWS SYSTEM ---
+        # Generate news every 10 days
+        news_event_today = None
+        if self.day > 0 and self.day % 10 == 0:
+            events = [
+                ("Tech sector boom drives unexpected deposit surges.", 0.25),
+                ("Federal reserve announces rate cuts, stabilizing local banks.", 0.35),
+                ("New government regulation increases trust in banking sector.", 0.15),
+                ("Unemployment drops, strengthening retail deposit base.", 0.20),
+                ("Rumors of massive institutional default sparks worry.", -0.30),
+                ("Inflation ticks higher, tightening market liquidity.", -0.20),
+                ("Major corporate client faces bankruptcy.", -0.35),
+                ("Geopolitical tensions cause flight to safety away from regional banks.", -0.25),
+                ("Market remains quiet amidst typical trading day.", 0.0),
+                ("No major macroeconomic indicators reported today.", 0.0)
+            ]
+            import random
+            headline, sentiment = random.choice(events)
+            
+            # Apply an instantaneous sentiment shock
+            self.market_sentiment += sentiment
+            
+            self.latest_news = {
+                "headline": headline,
+                "type": "positive" if sentiment > 0 else "negative" if sentiment < 0 else "neutral",
+                "days_ago": 0
+            }
+        else:
+            # Gradually decay sentiment shock back to neutral (0)
+            self.market_sentiment *= 0.80
+            if self.latest_news:
+                self.latest_news["days_ago"] += 1
+                
+        # Apply sentiment multipliers to the daily flows
+        # Positive sentiment increases deposits and decreases withdrawals
+        sentiment_dep_multiplier = 1.0 + self.market_sentiment
+        sentiment_with_multiplier = 1.0 - self.market_sentiment
+        
+        # Prevent completely halting everything
+        sentiment_with_multiplier = max(0.4, sentiment_with_multiplier)
+        sentiment_dep_multiplier = max(0.4, sentiment_dep_multiplier)
+        
+        daily_in *= sentiment_dep_multiplier
+        daily_out *= sentiment_with_multiplier
+            
+        self.current_deposit_pool += (daily_in - daily_out)
+        self.current_deposit_pool = max(self.current_deposit_pool, 1000)
+        
+        self.current_loan_pool += (daily_l_given - daily_l_repay)
+        self.current_loan_pool = max(self.current_loan_pool, 1000)
+        
+        net_cash_flow = (daily_in + daily_l_repay) - (daily_out + daily_l_given)
+        market_variation = self.current_hqla * np.random.normal(0, 0.001)
+        
+        if net_cash_flow < 0:
+            self.current_hqla += net_cash_flow
+        else:
+            # Rebuild liquid assets at 1:1 to maintain structural stability
+            self.current_hqla += net_cash_flow
+            
+        # Target HQLA rebalancing (banks actively manage this buffer to keep it ~20%)
+        target_hqla = self.current_deposit_pool * 0.20
+        rebalance_drift = (target_hqla - self.current_hqla) * 0.05 # slowly drift towards 20%
+        self.current_hqla += rebalance_drift + market_variation
+        
+        expected_30d_outflow = max(self.current_deposit_pool * 0.10, 100)
+        lcr = min(self.current_hqla / expected_30d_outflow, 5.0)
+        
+        asf = (self.current_deposit_pool * 0.90) + self.capital
+        rsf = self.current_loan_pool * 0.85
+        nsfr = asf / rsf if rsf > 0 else 5.0
+        
+        self.cumulative_net_cash += net_cash_flow
+        nlp = self.base_hqla + self.cumulative_net_cash
+        
+        if nlp < 0:
+            self.has_failed = True
+                
+        record = {
+            "Date": current_date.strftime('%Y-%m-%d'),
+            "LCR": round(lcr * 100, 2), # Send as percentage
+            "NSFR": round(nsfr * 100, 2),
+            "NLP": round(nlp, 2),
+            "HQLA": round(self.current_hqla, 2),
+            "Daily_Deposits": round(daily_in, 2),
+            "Daily_Withdrawals": round(daily_out, 2),
+            "Daily_Loans_Given": round(daily_l_given, 2),
+            "Daily_Loans_Repaid": round(daily_l_repay, 2),
+            "is_crisis": self.is_crisis,
+            "has_failed": self.has_failed,
+            "News_Headline": self.latest_news['headline'] if self.latest_news else None,
+            "News_Type": self.latest_news['type'] if self.latest_news else None,
+            "News_Age": self.latest_news['days_ago'] if self.latest_news else 0
+        }
+        
+        self.history.append(record)
+        self.day += 1
+        
+        return record

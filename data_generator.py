@@ -28,8 +28,8 @@ def generate_bank_data(days=365, seed=None):
     market_rate = repo_rate + np.random.normal(loc=0.5, scale=0.2, size=days)
     
     # 2. Deposits & Withdrawals
-    # Base deposits start at 100,000 (unit: thousands, so $100M)
-    base_deposits = 100000
+    # Base deposits start at 100,000,000 ($100M)
+    base_deposits = 100000000
     
     deposits = np.zeros(days)
     withdrawals = np.zeros(days)
@@ -41,7 +41,7 @@ def generate_bank_data(days=365, seed=None):
     
     # 3. Loans
     # Outstanding loans pool
-    current_loan_pool = 70000 
+    current_loan_pool = 70000000 
     loans_given = np.zeros(days)
     loan_repayment = np.zeros(days)
     
@@ -100,13 +100,13 @@ def generate_bank_data(days=365, seed=None):
 
     # Calculate ASF and RSF proxies for NSFR calculation over time
     # ASF (Available Stable Funding) ~ total retail deposits + capital
-    # Assume capital is constant 15,000
-    capital = 15000
+    # Assume capital is constant $15,000,000
+    capital = 15000000
     deposit_pool_arr = np.zeros(days)
     loan_pool_arr = np.zeros(days)
     
     d_pool = base_deposits
-    l_pool = 70000
+    l_pool = 70000000
     for i in range(days):
         d_pool += (deposits[i] - withdrawals[i])
         l_pool += (loans_given[i] - loan_repayment[i])
