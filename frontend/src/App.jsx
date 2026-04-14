@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { Play, Pause, AlertTriangle, RefreshCw, Rss } from 'lucide-react';
 import './index.css';
@@ -37,15 +37,15 @@ function App() {
   // The main heartbeat hook
   useEffect(() => {
     let interval = null;
-    
+
     if (isRunning && !hasFailed) {
       interval = setInterval(async () => {
         try {
           const response = await fetch('http://127.0.0.1:8000/api/step');
           const result = await response.json();
           // Hyper-optimized $O(1)$ networking state replacement
-          setData(prevData => [...prevData, result.record]); 
-          
+          setData(prevData => [...prevData, result.record]);
+
           if (result.has_failed) {
             setHasFailed(true);
             setIsRunning(false);
@@ -67,32 +67,32 @@ function App() {
     <div className="dashboard-container">
       <header className="header">
         <h1>Bank Liquidity LIVE Telemetry</h1>
-        
+
         <div style={{ display: 'flex', gap: '1rem' }}>
           {/* Main Controls */}
-          <button 
-            className="run-btn" 
+          <button
+            className="run-btn"
             style={{ backgroundColor: isRunning ? '#6c757d' : 'var(--primary-color)' }}
-            onClick={() => setIsRunning(!isRunning)} 
+            onClick={() => setIsRunning(!isRunning)}
             disabled={hasFailed}
           >
             {isRunning ? <Pause size={18} /> : <Play size={18} />}
             {isRunning ? 'Pause Engine' : 'Start Engine'}
           </button>
-          
-          <button 
-            className="run-btn" 
+
+          <button
+            className="run-btn"
             style={{ backgroundColor: 'var(--card-bg)', color: 'var(--primary-color)', border: '1px solid var(--primary-color)' }}
-            onClick={resetSimulation} 
+            onClick={resetSimulation}
           >
             <RefreshCw size={18} /> Reset
           </button>
 
           {/* Special trigger */}
-          <button 
-            className="run-btn" 
+          <button
+            className="run-btn"
             style={{ backgroundColor: 'var(--danger-color)' }}
-            onClick={triggerCrisis} 
+            onClick={triggerCrisis}
             disabled={isCrisis || hasFailed}
           >
             <AlertTriangle size={18} />
@@ -144,7 +144,7 @@ function App() {
           </div>
 
           <div className="charts-grid">
-            
+
             {/* Daily Flows Chart */}
             <div className="chart-card">
               <h2 className="chart-title">Daily Cash Flows (Deposits vs Withdrawals)</h2>

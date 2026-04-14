@@ -63,6 +63,36 @@ body {
   cursor: not-allowed;
 }
 
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.pin-btn {
+  background-color: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.pin-btn:hover {
+  background-color: #e2e6ea;
+}
+
+.pin-btn.active {
+  background-color: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

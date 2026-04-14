@@ -33,6 +33,7 @@ def generate_bank_data(days=365, seed=None):
     
     deposits = np.zeros(days)
     withdrawals = np.zeros(days)
+    deposit_pool_history = np.zeros(days)
     
     # Stress event starting point (randomly chosen between day 100 and 150)
     stress_start = np.random.randint(100, 150)
@@ -52,10 +53,6 @@ def generate_bank_data(days=365, seed=None):
             daily_in = current_deposit_pool * np.random.uniform(0.001, 0.005)
             # Daily withdrawals (0.1% to 0.4% of pool) -> Net positive usually
             daily_out = current_deposit_pool * np.random.uniform(0.001, 0.004)
-            # Normal loan activity
-            daily_l_given = current_deposit_pool * np.random.uniform(0.001, 0.003)
-            # Repayments based on outstanding loans
-            daily_l_repay = current_loan_pool * np.random.uniform(0.0015, 0.0025)
         else:
             # Stress event condition (e.g. panic)
             # Incoming deposits dry up
@@ -63,17 +60,32 @@ def generate_bank_data(days=365, seed=None):
             # Escalating withdrawals
             escalation_factor = min(1.0 + (i - stress_start) * 0.05, 5.0) # Up to 5x normal withdrawals
             daily_out = current_deposit_pool * np.random.uniform(0.002, 0.01) * escalation_factor
-            # Under stress, bank stops giving loans
-            daily_l_given = current_deposit_pool * np.random.uniform(0.000, 0.0005)
-            # Repayments might slow down (defaults)
-            daily_l_repay = current_loan_pool * np.random.uniform(0.0005, 0.0015)
             
         deposits[i] = daily_in
         withdrawals[i] = daily_out
         current_deposit_pool += (daily_in - daily_out)
         # Prevent completely negative pool for metrics to not break prematurely
         current_deposit_pool = max(current_deposit_pool, 1000)
-        
+        deposit_pool_history[i] = current_deposit_pool
+
+    # 3. Loans
+    # Outstanding loans pool
+    current_loan_pool = 70000 
+    loans_given = np.zeros(days)
+    loan_repayment = np.zeros(days)
+    
+    for i in range(days):
+        if i < stress_start:
+            # Normal loan activity
+            daily_l_given = deposit_pool_history[i] * np.random.uniform(0.001, 0.003)
+            # Repayments based on outstanding loans
+            daily_l_repay = current_loan_pool * np.random.uniform(0.0015, 0.0025)
+        else:
+            # Under stress, bank stops giving loans
+            daily_l_given = deposit_pool_history[i] * np.random.uniform(0.000, 0.0005)
+            # Repayments might slow down (defaults)
+            daily_l_repay = current_loan_pool * np.random.uniform(0.0005, 0.0015)
+            
         loans_given[i] = daily_l_given
         loan_repayment[i] = daily_l_repay
         current_loan_pool += (daily_l_given - daily_l_repay)
