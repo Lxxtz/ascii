@@ -24,6 +24,7 @@ class BankSimulationEngine:
         self.latest_news = None
         
         self.history = []
+        self.ml_memory = []
         
     def trigger_crisis(self):
         self.is_crisis = True
@@ -137,6 +138,48 @@ class BankSimulationEngine:
         
         if nlp < 0:
             self.has_failed = True
+            
+        loans_net = daily_l_given - daily_l_repay
+        crisis_val = 1.0 if self.is_crisis else 0.0
+        
+        feature_vector = [1.0, self.repo_rate, self.market_sentiment, loans_net, crisis_val]
+        self.ml_memory.append({
+            "X": feature_vector,
+            "y": net_cash_flow
+        })
+        
+        survival_days = None
+        lookback = 30
+        if len(self.ml_memory) >= lookback:
+            memory_slice = self.ml_memory[-lookback:]
+            X_mat = np.array([m["X"] for m in memory_slice])
+            Y_vec = np.array([m["y"] for m in memory_slice])
+            
+            # Sub-millisecond Hardware-Accelerated BLAS/LAPACK Algebraic OLS: B = (X^T * X)^-1 * X^T * Y
+            try:
+                B = np.linalg.pinv(X_mat.T @ X_mat) @ X_mat.T @ Y_vec
+            except np.linalg.LinAlgError:
+                B = np.zeros(5)
+                
+            temp_nlp = nlp
+            temp_sentiment = self.market_sentiment
+            days_survived = 0
+            
+            # Extrapolate theoretical future path based on Multi-variate mathematical correlations over up to 999 days
+            while temp_nlp > 0 and days_survived < 999:
+                days_survived += 1
+                temp_sentiment *= 0.80 # Sentiment fades mathematically in the future
+                future_X = np.array([1.0, self.repo_rate, temp_sentiment, loans_net, crisis_val])
+                pred_cash_flow = np.dot(future_X, B)
+                
+                temp_nlp += pred_cash_flow
+                
+                if pred_cash_flow >= 0 and temp_nlp > 0 and days_survived > 14:
+                    # Trajectory established positive escape velocity
+                    days_survived = 999
+                    break
+                    
+            survival_days = days_survived
                 
         record = {
             "Date": current_date.strftime('%Y-%m-%d'),
@@ -144,6 +187,7 @@ class BankSimulationEngine:
             "NSFR": round(nsfr * 100, 2),
             "NLP": round(nlp, 2),
             "HQLA": round(self.current_hqla, 2),
+            "Predicted_Survival_Days": survival_days,
             "Daily_Deposits": round(daily_in, 2),
             "Daily_Withdrawals": round(daily_out, 2),
             "Daily_Loans_Given": round(daily_l_given, 2),

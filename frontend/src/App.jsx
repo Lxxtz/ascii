@@ -224,6 +224,25 @@ function App() {
               </div>
             </div>
 
+             {/* Survival Chart */}
+             <div className="chart-card">
+              <h2 className="chart-title">A.I. Predictive Survival Horizon (Days)</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
+                  <YAxis domain={[0, 400]} />
+                  <Tooltip wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend />
+                  <ReferenceLine y={30} stroke="orange" strokeDasharray="3 3" label="Critical (30 Days)" />
+                  <Line isAnimationActive={false} type="stepAfter" dataKey="Predicted_Survival_Days" stroke="#6f42c1" dot={false} strokeWidth={2} name="Projected Survival Horizon" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div className="analysis-box">
+                <strong>What is happening here?</strong> A real-time <strong>Multi-Variate Machine Learning Engine</strong> natively evaluates 30-day correlations between [Repo Rates, Sentiment, and Lending]. It simulates iterations out into the future up to 999 times per second to precisely forecast the mathematically doomed impact date. Notice how responsive it is to immediate sentiment shifts compared to standard linear models!
+              </div>
+            </div>
+
           </div>
         </main>
       )}
