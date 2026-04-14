@@ -113,6 +113,21 @@ body {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.analysis-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: var(--bg-color);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.analysis-box strong {
+  color: var(--text-primary);
+}
+
 .chart-title {
   margin-top: 0;
   margin-bottom: 1.5rem;

@@ -82,6 +82,9 @@ function App() {
                   <Line yAxisId="right" type="monotone" dataKey="NSFR" stroke="#17a2b8" dot={false} strokeWidth={2} name="NSFR %" />
                 </LineChart>
               </ResponsiveContainer>
+              <div className="analysis-box">
+                <strong>What is happening here?</strong> The LCR (Liquidity Coverage Ratio) actively tracks the bank's strict 30-day survival stability. In the initial stage, deposits are stable and LCR remains safely well above the 100% regulatory baseline. When the simulated market panic triggers, an influx of withdrawals rapidly deflates the LCR. The NSFR remains relatively static as long-term loans structurally cannot be converted quickly into liquid cash during the crunch.
+              </div>
             </div>
 
             {/* NLP Chart */}
@@ -99,6 +102,9 @@ function App() {
                   <Line type="monotone" dataKey="HQLA" stroke="#28a745" dot={false} strokeWidth={2} name="HQLA Buffer" />
                 </LineChart>
               </ResponsiveContainer>
+              <div className="analysis-box">
+                <strong>What is happening here?</strong> The HQLA (High-Quality Liquid Assets) represents purely liquid unencumbered cash elements (like treasury bonds) the bank relies on. As panic withdrawals outpace the bank's incoming deposit flows (the Net Liquidity Position), the bank is forced to dynamically liquidate its HQLA buffers day by day. Once NLP breaks below the red insolvency line, the bank physically cannot disburse cash for incoming outflow requests.
+              </div>
             </div>
 
              {/* Survival Chart */}
@@ -115,6 +121,9 @@ function App() {
                   <Line type="stepAfter" dataKey="Predicted_Survival_Days" stroke="#6f42c1" dot={false} strokeWidth={2} name="Survival Horizon" />
                 </LineChart>
               </ResponsiveContainer>
+              <div className="analysis-box">
+                <strong>What is happening here?</strong> A real-time Linear Regression model algorithm evaluates cash burnout rate over the preceding 14-days. During stable operations, survival horizons remain securely capped near infinity (extrapolating positively). Upon entering the distress stage, the algorithm observes the immediate structural outflow trends and recalculates exactly how many mathematical days remain until the Net Cash buffer zeros out, acting as an early warning telemetric.
+              </div>
             </div>
 
             {/* Interest Rates Chart */}
