@@ -139,7 +139,7 @@ function App() {
             </div>
             <div className="metric-card">
               <div className="metric-title">Net Liquidity Pos.</div>
-              <div className="metric-value">${currentMetrics?.NLP.toLocaleString()}</div>
+              <div className="metric-value">${currentMetrics?.NLP.toLocaleString('en-US')}</div>
             </div>
           </div>
 
@@ -152,8 +152,8 @@ function App() {
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
-                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString()}`} />
-                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString()}` : null} wrapperStyle={{ fontSize: '12px' }} />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString('en-US')}`} />
+                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString('en-US')}` : null} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <Line isAnimationActive={false} type="monotone" dataKey="Daily_Deposits" stroke="#28a745" dot={false} strokeWidth={2} name="Daily Deposits" />
                   <Line isAnimationActive={false} type="monotone" dataKey="Daily_Withdrawals" stroke="#dc3545" dot={false} strokeWidth={2} name="Daily Withdrawals" />
@@ -171,8 +171,8 @@ function App() {
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
-                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString()}`} />
-                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString()}` : null} wrapperStyle={{ fontSize: '12px' }} />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString('en-US')}`} />
+                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString('en-US')}` : null} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <Line isAnimationActive={false} type="monotone" dataKey="Daily_Loans_Given" stroke="#fd7e14" dot={false} strokeWidth={2} name="Loans Given" />
                   <Line isAnimationActive={false} type="monotone" dataKey="Daily_Loans_Repaid" stroke="#6f42c1" dot={false} strokeWidth={2} name="Loans Repaid" />
@@ -211,8 +211,8 @@ function App() {
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
-                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString()}`} />
-                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString()}` : null} wrapperStyle={{ fontSize: '12px' }} />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString('en-US')}`} />
+                  <Tooltip formatter={(value) => value ? `$${value.toLocaleString('en-US')}` : null} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <ReferenceLine y={0} stroke="red" strokeDasharray="3 3" label="Insolvency Line" />
                   <Line isAnimationActive={false} type="monotone" dataKey="NLP" stroke="#dc3545" dot={false} strokeWidth={2} name="Net Liquidity (NLP)" />
@@ -225,13 +225,13 @@ function App() {
             </div>
 
              {/* Survival Chart */}
-             <div className="chart-card">
+             <div className="chart-card full-width-chart">
               <h2 className="chart-title">A.I. Predictive Survival Horizon (Days)</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
-                  <YAxis domain={[0, 400]} />
+                  <YAxis domain={[0, 365]} />
                   <Tooltip wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <ReferenceLine y={30} stroke="orange" strokeDasharray="3 3" label="Critical (30 Days)" />

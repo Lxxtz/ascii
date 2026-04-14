@@ -165,8 +165,8 @@ class BankSimulationEngine:
             temp_sentiment = self.market_sentiment
             days_survived = 0
             
-            # Extrapolate theoretical future path based on Multi-variate mathematical correlations over up to 999 days
-            while temp_nlp > 0 and days_survived < 999:
+            # Extrapolate theoretical future path based on Multi-variate mathematical correlations over up to 365 days
+            while temp_nlp > 0 and days_survived < 365:
                 days_survived += 1
                 temp_sentiment *= 0.80 # Sentiment fades mathematically in the future
                 future_X = np.array([1.0, self.repo_rate, temp_sentiment, loans_net, crisis_val])
@@ -176,7 +176,7 @@ class BankSimulationEngine:
                 
                 if pred_cash_flow >= 0 and temp_nlp > 0 and days_survived > 14:
                     # Trajectory established positive escape velocity
-                    days_survived = 999
+                    days_survived = 365
                     break
                     
             survival_days = days_survived
