@@ -117,6 +117,38 @@ function App() {
               </ResponsiveContainer>
             </div>
 
+            {/* Interest Rates Chart */}
+            <div className="chart-card">
+              <h2 className="chart-title">Interest Rates (%)</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `${Number(tick).toFixed(2)}%`} width={60} />
+                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend />
+                  <Line type="monotone" dataKey="Repo_Rate" stroke="#f39c12" dot={false} strokeWidth={2} name="Repo Rate" />
+                  <Line type="monotone" dataKey="Market_Rate" stroke="#9b59b6" dot={false} strokeWidth={2} name="Market Rate" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Loan Activity Chart */}
+            <div className="chart-card">
+              <h2 className="chart-title">Loan Activity / Liquidity Flows</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${Number(tick).toLocaleString()}`} width={80} />
+                  <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend />
+                  <Line type="monotone" dataKey="Loans_Given" stroke="#d35400" dot={false} strokeWidth={2} name="Loan Given" />
+                  <Line type="monotone" dataKey="Loan_Repayment" stroke="#27ae60" dot={false} strokeWidth={2} name="Loan Repayment" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
           </div>
         </main>
       )}
