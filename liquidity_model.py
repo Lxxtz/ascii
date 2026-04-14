@@ -170,7 +170,7 @@ def run_simulation_api():
         is_crisis = False
         
     df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
-    records = df[['Date', 'LCR', 'NSFR', 'NLP', 'HQLA', 'Predicted_Survival_Days', 'Repo_Rate', 'Market_Rate', 'Loans_Given', 'Loan_Repayment']].replace({np.nan: None}).to_dict(orient='records')
+    records = df[['Date', 'LCR', 'NSFR', 'NLP', 'HQLA', 'Predicted_Survival_Days', 'Repo_Rate', 'Market_Rate', 'Loans_Given', 'Loan_Repayment', 'Deposits', 'Withdrawals', 'Total_Deposits_Pool']].replace({np.nan: None}).to_dict(orient='records')
     
     return {
         "isCrisis": is_crisis,

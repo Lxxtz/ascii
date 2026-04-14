@@ -2,12 +2,36 @@ import React, { useState } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine 
 } from 'recharts';
-import { Play, Activity } from 'lucide-react';
+import { Play, Activity, Pin } from 'lucide-react';
 import './index.css';
 
 function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [pinnedData, setPinnedData] = useState(null);
+
+  const chartData = data?.timeSeries?.map((item, index) => {
+    let mergedItem = { ...item };
+    if (pinnedData && pinnedData[index]) {
+      const p = pinnedData[index];
+      mergedItem = {
+        ...mergedItem,
+        Pinned_LCR: p.LCR,
+        Pinned_NSFR: p.NSFR,
+        Pinned_NLP: p.NLP,
+        Pinned_HQLA: p.HQLA,
+        Pinned_Predicted_Survival_Days: p.Predicted_Survival_Days,
+        Pinned_Repo_Rate: p.Repo_Rate,
+        Pinned_Market_Rate: p.Market_Rate,
+        Pinned_Loans_Given: p.Loans_Given,
+        Pinned_Loan_Repayment: p.Loan_Repayment,
+        Pinned_Deposits: p.Deposits,
+        Pinned_Withdrawals: p.Withdrawals,
+        Pinned_Total_Deposits_Pool: p.Total_Deposits_Pool,
+      };
+    }
+    return mergedItem;
+  });
 
   const runSimulation = async () => {
     setLoading(true);
@@ -26,14 +50,26 @@ function App() {
     <div className="dashboard-container">
       <header className="header">
         <h1>Bank Liquidity & Risk Dashboard</h1>
-        <button 
-          className="run-btn" 
-          onClick={runSimulation} 
-          disabled={loading}
-        >
-          {loading ? <Activity size={18} className="animate-spin" /> : <Play size={18} />}
-          {loading ? 'Running Simulation...' : 'Run Simulation'}
-        </button>
+        <div className="header-actions">
+          {data && (
+            <button 
+              className={`pin-btn ${pinnedData ? 'active' : ''}`}
+              onClick={() => setPinnedData(pinnedData ? null : data.timeSeries)}
+              title={pinnedData ? "Unpin previous run" : "Pin current run to compare"}
+            >
+              <Pin size={18} />
+              {pinnedData ? 'Unpin Run' : 'Pin Run'}
+            </button>
+          )}
+          <button 
+            className="run-btn" 
+            onClick={runSimulation} 
+            disabled={loading}
+          >
+            {loading ? <Activity size={18} className="animate-spin" /> : <Play size={18} />}
+            {loading ? 'Running Simulation...' : 'Run Simulation'}
+          </button>
+        </div>
       </header>
 
       {!data ? (
@@ -70,7 +106,7 @@ function App() {
             <div className="chart-card">
               <h2 className="chart-title">Regulatory Ratios (LCR & NSFR) Over Time</h2>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
                   <YAxis yAxisId="left" domain={[0, 'auto']} label={{ value: 'LCR %', angle: -90, position: 'insideLeft' }} />
@@ -78,64 +114,62 @@ function App() {
                   <Tooltip wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <ReferenceLine yAxisId="left" y={100} stroke="red" strokeDasharray="3 3" label="LCR Min (100%)" />
+                  {pinnedData && <Line yAxisId="left" type="monotone" dataKey="Pinned_LCR" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned LCR %" />}
+                  {pinnedData && <Line yAxisId="right" type="monotone" dataKey="Pinned_NSFR" stroke="#d3d3d3" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned NSFR %" />}
                   <Line yAxisId="left" type="monotone" dataKey="LCR" stroke="#0056b3" dot={false} strokeWidth={2} name="LCR %" />
                   <Line yAxisId="right" type="monotone" dataKey="NSFR" stroke="#17a2b8" dot={false} strokeWidth={2} name="NSFR %" />
                 </LineChart>
               </ResponsiveContainer>
-              <div className="analysis-box">
-                <strong>What is happening here?</strong> The LCR (Liquidity Coverage Ratio) actively tracks the bank's strict 30-day survival stability. In the initial stage, deposits are stable and LCR remains safely well above the 100% regulatory baseline. When the simulated market panic triggers, an influx of withdrawals rapidly deflates the LCR. The NSFR remains relatively static as long-term loans structurally cannot be converted quickly into liquid cash during the crunch.
-              </div>
             </div>
 
             {/* NLP Chart */}
             <div className="chart-card">
               <h2 className="chart-title">Net Liquidity Position (NLP) & Buffer</h2>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
                   <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${tick.toLocaleString()}`} />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} wrapperStyle={{ fontSize: '12px' }} />
+                  <Tooltip formatter={(value) => value != null ? `$${value.toLocaleString()}` : ''} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <ReferenceLine y={0} stroke="red" strokeDasharray="3 3" label="Insolvency Line" />
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_NLP" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned NLP" />}
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_HQLA" stroke="#d3d3d3" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned HQLA Buffer" />}
                   <Line type="monotone" dataKey="NLP" stroke="#dc3545" dot={false} strokeWidth={2} name="Net Liquidity (NLP)" />
                   <Line type="monotone" dataKey="HQLA" stroke="#28a745" dot={false} strokeWidth={2} name="HQLA Buffer" />
                 </LineChart>
               </ResponsiveContainer>
-              <div className="analysis-box">
-                <strong>What is happening here?</strong> The HQLA (High-Quality Liquid Assets) represents purely liquid unencumbered cash elements (like treasury bonds) the bank relies on. As panic withdrawals outpace the bank's incoming deposit flows (the Net Liquidity Position), the bank is forced to dynamically liquidate its HQLA buffers day by day. Once NLP breaks below the red insolvency line, the bank physically cannot disburse cash for incoming outflow requests.
-              </div>
             </div>
 
              {/* Survival Chart */}
              <div className="chart-card">
               <h2 className="chart-title">Estimated Survival Horizon (Days)</h2>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
                   <YAxis domain={[0, 400]} />
                   <Tooltip wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
                   <ReferenceLine y={30} stroke="orange" strokeDasharray="3 3" label="Critical (30 Days)" />
+                  {pinnedData && <Line type="stepAfter" dataKey="Pinned_Predicted_Survival_Days" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Survival" />}
                   <Line type="stepAfter" dataKey="Predicted_Survival_Days" stroke="#6f42c1" dot={false} strokeWidth={2} name="Survival Horizon" />
                 </LineChart>
               </ResponsiveContainer>
-              <div className="analysis-box">
-                <strong>What is happening here?</strong> A real-time Linear Regression model algorithm evaluates cash burnout rate over the preceding 14-days. During stable operations, survival horizons remain securely capped near infinity (extrapolating positively). Upon entering the distress stage, the algorithm observes the immediate structural outflow trends and recalculates exactly how many mathematical days remain until the Net Cash buffer zeros out, acting as an early warning telemetric.
-              </div>
             </div>
 
             {/* Interest Rates Chart */}
             <div className="chart-card">
               <h2 className="chart-title">Interest Rates (%)</h2>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
                   <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `${Number(tick).toFixed(2)}%`} width={60} />
-                  <Tooltip formatter={(value) => `${Number(value).toFixed(2)}%`} wrapperStyle={{ fontSize: '12px' }} />
+                  <Tooltip formatter={(value) => value != null ? `${Number(value).toFixed(2)}%` : ''} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_Repo_Rate" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Repo Rate" />}
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_Market_Rate" stroke="#d3d3d3" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Market Rate" />}
                   <Line type="monotone" dataKey="Repo_Rate" stroke="#f39c12" dot={false} strokeWidth={2} name="Repo Rate" />
                   <Line type="monotone" dataKey="Market_Rate" stroke="#9b59b6" dot={false} strokeWidth={2} name="Market Rate" />
                 </LineChart>
@@ -146,14 +180,37 @@ function App() {
             <div className="chart-card">
               <h2 className="chart-title">Loan Activity / Liquidity Flows</h2>
               <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={data.timeSeries} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                   <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
                   <YAxis domain={['auto', 'auto']} tickFormatter={(tick) => `$${Number(tick).toLocaleString()}`} width={80} />
-                  <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} wrapperStyle={{ fontSize: '12px' }} />
+                  <Tooltip formatter={(value) => value != null ? `$${Number(value).toLocaleString()}` : ''} wrapperStyle={{ fontSize: '12px' }} />
                   <Legend />
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_Loans_Given" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Loan Given" />}
+                  {pinnedData && <Line type="monotone" dataKey="Pinned_Loan_Repayment" stroke="#d3d3d3" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Loan Repayment" />}
                   <Line type="monotone" dataKey="Loans_Given" stroke="#d35400" dot={false} strokeWidth={2} name="Loan Given" />
                   <Line type="monotone" dataKey="Loan_Repayment" stroke="#27ae60" dot={false} strokeWidth={2} name="Loan Repayment" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Deposits & Withdrawals Chart */}
+            <div className="chart-card">
+              <h2 className="chart-title">Deposits & Withdrawals vs Total Balance</h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="Date" tick={{ fontSize: 12 }} minTickGap={30} />
+                  <YAxis yAxisId="left" domain={['auto', 'auto']} tickFormatter={(tick) => `$${Number(tick).toLocaleString()}`} width={80} />
+                  <YAxis yAxisId="right" orientation="right" domain={['auto', 'auto']} tickFormatter={(tick) => `$${Number(tick).toLocaleString()}`} width={80} />
+                  <Tooltip formatter={(value) => value != null ? `$${Number(value).toLocaleString()}` : ''} wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend />
+                  {pinnedData && <Line yAxisId="left" type="monotone" dataKey="Pinned_Deposits" stroke="#b0b0b0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Deposits" />}
+                  {pinnedData && <Line yAxisId="left" type="monotone" dataKey="Pinned_Withdrawals" stroke="#d3d3d3" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Withdrawals" />}
+                  {pinnedData && <Line yAxisId="right" type="monotone" dataKey="Pinned_Total_Deposits_Pool" stroke="#e0e0e0" strokeDasharray="5 5" dot={false} strokeWidth={2} name="Pinned Total Pool" />}
+                  <Line yAxisId="left" type="monotone" dataKey="Deposits" stroke="#28a745" dot={false} strokeWidth={2} name="Deposits (Flow)" />
+                  <Line yAxisId="left" type="monotone" dataKey="Withdrawals" stroke="#dc3545" dot={false} strokeWidth={2} name="Withdrawals (Flow)" />
+                  <Line yAxisId="right" type="monotone" dataKey="Total_Deposits_Pool" stroke="#0056b3" dot={false} strokeWidth={2} name="Total Balance Pool" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
