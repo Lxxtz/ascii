@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid, Legend, ComposedChart
@@ -74,11 +76,11 @@ function MethodologyBox({ label, staticText, dynamicText }) {
 const TacticalTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#111] border border-[#333] px-3 py-2 text-[10px] font-mono">
-      <div className="text-tactical-dim mb-1">{label}</div>
+    <div className="bg-[#111] border border-[#333] px-3 py-2 text-[10px] font-mono shadow-2xl">
+      <div className="text-tactical-dim mb-1 font-bold">{label}</div>
       {payload.map((p, i) => (
         <div key={i} className="flex gap-2 items-center">
-          <span className="inline-block w-2 h-2" style={{ backgroundColor: p.stroke || p.fill }}></span>
+          <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: p.stroke || p.fill }}></span>
           <span className="text-[#aaa]">{p.name}:</span>
           <span className="text-white font-bold">{typeof p.value === 'number' ? p.value.toFixed(2) : p.value}</span>
         </div>
@@ -96,12 +98,12 @@ const SectionHeader = ({ icon: Icon, title, subtitle, tag }) => (
         <p className="text-[9px] text-tactical-dim tracking-widest uppercase">{subtitle}</p>
       </div>
     </div>
-    {tag && <span className="text-[9px] font-mono text-tactical-dim border border-tactical-border px-2 py-1">{tag}</span>}
+    {tag && <span className="text-[9px] font-mono text-tactical-dim border border-tactical-border px-2 py-1 bg-black/20">{tag}</span>}
   </div>
 );
 
 const InterpretationBox = ({ icon: Icon, text, severity }) => (
-  <div className={`flex items-start gap-2 px-4 py-3 border-l-2 text-[10px] font-sans leading-relaxed ${severity === 'critical' ? 'border-tactical-red-bright bg-[#1a0a0a] text-[#ffaaaa]' :
+  <div className={`flex items-start gap-2 px-4 py-3 border-l-2 text-[10px] font-sans leading-relaxed mt-2 ${severity === 'critical' ? 'border-tactical-red-bright bg-[#1a0a0a] text-[#ffaaaa]' :
       severity === 'warning' ? 'border-tactical-orange bg-[#1a1400] text-tactical-orange' :
         'border-tactical-dim bg-[#141414] text-[#999]'
     }`}>
@@ -111,13 +113,14 @@ const InterpretationBox = ({ icon: Icon, text, severity }) => (
 );
 
 const KpiCard = ({ label, value, sub, color, icon: Icon }) => (
-  <div className="bg-tactical-surface border border-tactical-border p-4 flex flex-col gap-1 min-w-0">
-    <div className="flex items-center gap-1.5">
-      {Icon && <Icon className="text-tactical-dim" size={14} />}
+  <div className="bg-tactical-surface border border-tactical-border p-4 flex flex-col gap-1 min-w-0 shadow-sm relative overflow-hidden group">
+    <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full blur-xl -mr-8 -mt-8 group-hover:bg-white/10 transition-all"></div>
+    <div className="flex items-center gap-1.5 z-10">
+      {Icon && <Icon className="text-tactical-dim" size={14} /> }
       <span className="text-[9px] font-sans font-bold text-tactical-dim uppercase tracking-widest truncate">{label}</span>
     </div>
-    <span className={`text-xl font-bold font-mono truncate ${color || 'text-white'}`}>{value}</span>
-    {sub && <span className="text-[9px] text-tactical-dim font-mono truncate">{sub}</span>}
+    <span className={`text-2xl font-black font-mono truncate z-10 ${color || 'text-white'}`}>{value}</span>
+    {sub && <span className="text-[9px] text-tactical-dim font-mono truncate z-10">{sub}</span>}
   </div>
 );
 
@@ -135,7 +138,10 @@ export default function App() {
   const [activeSolutions, setActiveSolutions] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
   const simInterval = useRef(null);
+  const contentRef = useRef(null);
+  const reportSentRef = useRef(false);
 
   // ── Fetch solutions catalog ──
   useEffect(() => {
@@ -192,6 +198,48 @@ export default function App() {
     return () => clearInterval(simInterval.current);
   }, [isRunning, hasFailed]);
 
+  // ── Auto Report on Insolvency ──
+  useEffect(() => {
+    if (hasFailed && !reportSentRef.current && contentRef.current) {
+      reportSentRef.current = true;
+      // Wait a moment for UI to visually reflect the "DEAD/INSOLVENT" state
+      setTimeout(() => {
+        html2canvas(contentRef.current, { backgroundColor: '#0a0a0a', scale: 1.5, windowHeight: contentRef.current.scrollHeight })
+          .then(canvas => {
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const pdf = new jsPDF('p', 'pt', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            let heightLeft = pdfHeight;
+            let position = 0;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+              position = heightLeft - pdfHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+              heightLeft -= pageHeight;
+            }
+
+            const pdfBase64 = pdf.output('datauristring');
+            fetch(apiUrl('/api/send-insolvency-report'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image_data: pdfBase64 }),
+            }).catch(console.error);
+          });
+      }, 1500);
+    }
+
+    // Reset block if simulation gets reset
+    if (!hasFailed && data.length === 0) {
+      reportSentRef.current = false;
+    }
+  }, [hasFailed, data.length]);
+
   // ── Controls ──
   const startSim = () => {
     if (data.length === 0) {
@@ -224,7 +272,6 @@ export default function App() {
   const lcr = current?.LCR;
   const nlpVal = current?.NLP;
   const ldr = current?.LDR;
-  const hqla = current?.HQLA;
   const nsfr = current?.NSFR;
   const lstmSurv = current?.LSTM_Survival;
   const hasCounterfactual = data.some(d => d.Counterfactual_LCR != null);
@@ -237,6 +284,38 @@ export default function App() {
   const statusText = hasFailed ? 'INSOLVENT' : isCrisis ? 'CRITICAL' : (lcr !== undefined && lcr < 120) ? 'WARNING' : 'SOLVENT';
   const statusColor = hasFailed ? 'text-tactical-red-bright' : isCrisis ? 'text-tactical-red-bright' : statusText === 'WARNING' ? 'text-tactical-orange' : 'text-tactical-green';
 
+  // Data slices for the detailed charts
+  const last30 = data.slice(-30);
+  const last7 = data.slice(-7);
+
+  // ── Survival history for the forecast chart ──
+  const survivalData = data.filter((_, i) => i % 1 === 0).map(d => ({
+    Date: d.Date,
+    LSTM: d.LSTM_Survival,
+  }));
+
+  // Interpretations (from the new UI/UX merge)
+  const lcrInterp = lcr === undefined ? 'Awaiting data...'
+    : lcr >= 150 ? 'LCR ratio is significantly above the Basel III 100% minimum. Strong short-term liquidity position maintained.'
+      : lcr >= 100 ? 'LCR ratio remains above the regulatory minimum but buffer is narrowing. Continued monitoring advised.'
+        : 'LCR has BREACHED the Basel III 100% minimum threshold. Immediate remediation is required.';
+  
+  // Notice we handle nlpVal === null/undefined correctly
+  const nlpInterp = nlpVal === undefined || nlpVal === null ? 'Awaiting data...'
+    : nlpVal > 15_000_000 ? 'Net liquidity position is healthy with strong HQLA buffer. No insolvency risk detected.'
+      : nlpVal > 0 ? 'Net liquidity is positive but declining. HQLA buffer erosion detected — active monitoring recommended.'
+        : 'Net liquidity has crossed the ZERO threshold. Insolvency conditions imminent.';
+  const nlpSev = nlpVal === undefined || nlpVal === null ? 'info' : nlpVal > 15_000_000 ? 'info' : nlpVal > 0 ? 'warning' : 'critical';
+
+  const survInterp = bestSurv === null ? 'Awaiting sufficient data for LSTM model convergence (30+ days needed)...'
+    : bestSurv > 300 ? 'Forecast indicates survival horizon exceeds 300 days. No near-term breach risk.'
+      : bestSurv > 100 ? `Forecasted survival horizon: ${bestSurv} days. Models detect gradual stress accumulation.`
+        : bestSurv > 30 ? `WARNING: Survival horizon at ${bestSurv} days. Breach trajectory accelerating — intervention recommended.`
+          : `CRITICAL: Only ${bestSurv} days until projected LCR breach. Immediate emergency action required.`;
+  const survSev = bestSurv === null ? 'info' : bestSurv > 100 ? 'info' : bestSurv > 30 ? 'warning' : 'critical';
+
+  const unreadAlerts = systemAlerts.filter(a => a.severity === 'critical').length;
+
   return (
     <div className="flex flex-col w-full h-screen bg-tactical-bg text-tactical-text font-mono overflow-hidden">
 
@@ -244,7 +323,7 @@ export default function App() {
       <header className="h-12 shrink-0 border-b border-tactical-border/60 flex items-center justify-between px-5 bg-[#0a0a0a] z-30">
         <div className="flex items-center gap-3">
           <Terminal className="text-tactical-dim" size={18} />
-          <span className="text-xs font-bold tracking-widest text-white font-sans">LIQUIDITY_RISK_MONITOR</span>
+          <span className="text-xs font-bold tracking-widest text-white font-sans">FLUXSHIELD</span>
           <span className="text-[9px] text-tactical-dim font-mono ml-3">
             {current ? `DAY ${data.length} // ${current.Date}` : 'AWAITING INIT'}
           </span>
@@ -253,7 +332,7 @@ export default function App() {
         <div className="flex items-center gap-3">
           <button onClick={isRunning ? pauseSim : startSim} disabled={hasFailed}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest transition-all border ${hasFailed ? 'border-tactical-red-bright/30 text-tactical-red-bright/50 cursor-not-allowed' :
-                isRunning ? 'border-tactical-green text-tactical-green hover:bg-tactical-green hover:text-black' :
+                isRunning ? 'border-tactical-green text-tactical-green hover:bg-tactical-green hover:text-black shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
                   'border-white text-white bg-white/10 hover:bg-white hover:text-black'
               }`}>
             {isRunning ? <Pause size={14} /> : <Play size={14} />}
@@ -266,7 +345,7 @@ export default function App() {
           </button>
 
           <button onClick={triggerCrisis}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-red-bright/40 text-tactical-red-bright bg-tactical-red-bright/5 hover:bg-tactical-red-bright hover:text-white transition-all">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-red-bright/40 text-tactical-red-bright bg-tactical-red-bright/5 hover:bg-tactical-red-bright hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all">
             <AlertTriangle size={14} /> TRIGGER CRISIS
           </button>
 
@@ -325,14 +404,13 @@ export default function App() {
       </header>
 
       {/* ═══ MAIN CONTENT ═══ */}
-      <div className="flex-1 overflow-y-auto tactical-grid no-scrollbar">
+      <div className="flex-1 overflow-y-auto tactical-grid no-scrollbar" ref={contentRef}>
         {data.length === 0 ? (
           <div className="welcome-container">
-            {/* Top Section: Understanding the Dashboard */}
             <div>
               <div className="section-header-centered">
                 <div className="section-supertitle">KEY METRICS</div>
-                <h2 className="section-title">Understanding the Dashboard</h2>
+                <h2 className="section-title">Understanding FluxShield Dashboard</h2>
                 <p className="section-subtitle">Core regulatory and financial metrics monitored in real-time during the simulation.</p>
               </div>
 
@@ -438,7 +516,7 @@ export default function App() {
                     </div>
                   </div>
                   <p className="metric-desc">
-                    Forecasted number of days until the bank's LCR breaches the <strong>100% regulatory minimum</strong> — the core output of our ML models.
+                    Forecasted number of days until the bank's LCR breaches the <strong>100% regulatory minimum</strong>.
                   </p>
                   <div className="formula-box">
                     Derived from LSTM deep learning forecasts
@@ -490,14 +568,13 @@ export default function App() {
                 </div>
               </div>
             </div>
-
           </div>
         ) : (
-          <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+          <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-8">
 
             {/* Active Solutions Bar */}
             {activeSolutions.length > 0 && (
-              <div className="active-solutions-bar">
+              <div className="active-solutions-bar mt-2 mb-4">
                 <div className="active-solutions-label">
                   <Shield size={14} />
                   Active Interventions
@@ -516,7 +593,7 @@ export default function App() {
 
             {/* News Banner */}
             {current?.News_Headline && (
-              <div className="bg-tactical-surface border rounded-md p-4 flex items-center justify-between" style={{ borderColor: current.News_Type === 'positive' ? '#22c55e' : current.News_Type === 'negative' ? '#ef4444' : '#6b7280', borderLeftWidth: '4px' }}>
+              <div className="bg-tactical-surface border rounded-md p-4 flex items-center justify-between shadow-md mb-6" style={{ borderColor: current.News_Type === 'positive' ? '#22c55e' : current.News_Type === 'negative' ? '#ef4444' : '#6b7280', borderLeftWidth: '4px' }}>
                 <div className="flex items-center gap-4">
                   <Rss size={24} color={current.News_Type === 'positive' ? '#22c55e' : current.News_Type === 'negative' ? '#ef4444' : '#6b7280'} />
                   <div>
@@ -532,7 +609,7 @@ export default function App() {
             )}
 
             {/* KPI CARDS */}
-            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
               <KpiCard label="Status" value={statusText} color={statusColor} icon={MonitorHeart} sub={isCrisis ? 'CRITICAL STATE' : 'MONITORING'} />
               <KpiCard label="Date" value={current?.Date || '—'} icon={Calendar} sub={`Day ${data.length}`} />
               <KpiCard label="LCR" value={lcr !== undefined ? `${lcr.toFixed(2)}%` : '—'} icon={Speed} color={lcr < 100 ? 'text-tactical-red-bright' : lcr < 120 ? 'text-tactical-orange' : 'text-white'} sub="Basel III Coverage" />
@@ -541,110 +618,136 @@ export default function App() {
               <KpiCard label="LSTM Surv." value={lstmSurv !== undefined ? (lstmSurv >= 365 ? '365d+' : `${lstmSurv}d`) : '—'} icon={Brain} color={lstmSurv < 100 ? 'text-tactical-orange' : 'text-white'} sub="Deep Forecast" />
             </section>
 
-            {/* SECTION 1: FUNDING LIQUIDITY */}
-            <SectionHeader icon={Activity} title="Funding Liquidity Analysis" subtitle="Intraday – 30 Day Cash Flow Monitoring" tag="SEC_01" />
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Deposit vs Withdrawal Volatility</h3>
-                <div className="h-64">
+            {/* ROW 1: FUNDING LIQUIDITY & LENDING (2 Graphs) */}
+            <SectionHeader icon={Activity} title="Funding & Lending Velocity" subtitle="Intraday – 30 Day Operations" tag="SEC_01" />
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              
+              {/* Deposit/Withdrawal Chart */}
+              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
+                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex items-center justify-between">
+                  <span>Net Cashflow (Deposits vs Withdrawals)</span>
+                  <span className="text-[9px] font-mono bg-black/30 px-2 py-0.5 border border-tactical-border text-tactical-dim">30D WINDOW</span>
+                </h3>
+                <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data.slice(-30)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                      <XAxis dataKey="Date" hide />
-                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
-                      <Tooltip content={TacticalTooltip} />
-                      <Area type="monotone" dataKey="Daily_Deposits" name="Deposits" stroke="#22c55e" fill="#22c55e" fillOpacity={0.1} strokeWidth={2} dot={false} isAnimationActive={false} />
-                      <Area type="monotone" dataKey="Daily_Withdrawals" name="Withdrawals" stroke="#ef4444" fill="#ef4444" fillOpacity={0.1} strokeWidth={2} dot={false} isAnimationActive={false} />
+                    <AreaChart data={last30} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval={Math.floor(last30.length / 5)} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
+                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
+                      <Tooltip content={<TacticalTooltip />} />
+                      <Area type="monotone" dataKey="Daily_Deposits" name="Deposits" stroke="#04d45b" fill="#04d45b" fillOpacity={0.15} strokeWidth={2} dot={false} isAnimationActive={false} />
+                      <Area type="monotone" dataKey="Daily_Withdrawals" name="Withdrawals" stroke="#ff3333" fill="#ff3333" fillOpacity={0.1} strokeWidth={2} dot={false} isAnimationActive={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <MethodologyBox label="Cash Flow Methodology"
-                  staticText="Deposits are sampled as DepositPool × U(0.2%, 0.6%) then modulated by sentiment. Withdrawals are DepositPool × U(0.2%, 0.55%). During crisis, withdrawals escalate by factor (1 + crisisDays × 0.05), capped at 5×."
-                  dynamicText={current?.Methodology?.cash_flows} />
                 <InterpretationBox icon={TrendingDown} severity={lcr < 120 ? 'warning' : 'info'} text={lcr < 120 ? 'Withdrawal pressure is accelerating beyond historical means. LCR buffer erosion imminent.' : 'Funding inflows remain within normal volatility bands.'} />
               </div>
 
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Lending & Repayment Velocity</h3>
-                <div className="h-64">
+               {/* Lending Velocity */}
+              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
+                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Lending Activities</h3>
+                <div className="w-full min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.slice(-30)}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                      <XAxis dataKey="Date" hide />
-                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
-                      <Tooltip content={TacticalTooltip} />
-                      <Bar dataKey="Daily_Loans_Given" name="Loans Issued" fill="#f97316" fillOpacity={0.7} isAnimationActive={false} />
-                      <Bar dataKey="Daily_Loans_Repaid" name="Repayments" fill="#a78bfa" fillOpacity={0.7} isAnimationActive={false} />
+                    <BarChart data={last30} barGap={-1} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval={Math.floor(last30.length / 5)} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
+                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
+                      <Tooltip content={<TacticalTooltip />} cursor={{fill: '#f4f4f4', opacity: 0.1}}/>
+                      <Bar dataKey="Daily_Loans_Given" name="Loans Issued" fill="#ff9933" fillOpacity={0.9} isAnimationActive={false} radius={[2,2,0,0]} />
+                      <Bar dataKey="Daily_Loans_Repaid" name="Repayments" fill="#66aaff" fillOpacity={0.9} isAnimationActive={false} radius={[2,2,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-                <MethodologyBox label="Lending Methodology"
-                  staticText="Loans Issued = DepositPool × U(0.1%, 0.3%). Repayments = LoanPool × U(0.15%, 0.4%). During crisis: issuance drops to preserve capital, while repayments slow to U(0.05%, 0.15%)."
-                  dynamicText={current?.Methodology?.lending} />
                 <InterpretationBox icon={Gavel} severity="info" text="Lending issuance has been curtailed in response to current liquidity risk parameters." />
               </div>
             </section>
 
-            {/* SECTION 2: REGULATORY METRICS */}
-            <SectionHeader icon={Shield} title="Regulatory Compliance" subtitle="LCR & NSFR Threshold Tracking" tag="SEC_02" />
-            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4">
+            {/* ROW 2: LIQUIDITY BUFFERS & COMPLIANCE (2 Graphs) */}
+            <SectionHeader icon={Shield} title="Regulatory Compliance & Buffers" subtitle="Ratio Monitoring & HQLA Stability" tag="SEC_02" />
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              
+              {/* LCR / NSFR Line Chart */}
+              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-[10px] font-bold text-tactical-dim uppercase tracking-[0.2em]">Ratio Monitoring (LCR/NSFR)</h3>
+                  <h3 className="text-[10px] font-bold text-tactical-dim uppercase tracking-[0.2em]">Ratio Monitoring (LCR & NSFR)</h3>
                   {hasCounterfactual && <span className="text-[8px] text-tactical-red-bright font-black tracking-widest bg-tactical-red-bright/10 px-2 py-0.5 border border-tactical-red-bright/20 uppercase animate-pulse">Counterfactual Active</span>}
                 </div>
-                <div className="h-64">
+                <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                      <XAxis dataKey="Date" hide />
-                      <YAxis domain={[0, 'auto']} tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <LineChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={30} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40}/>
+                      <YAxis domain={[0, 'auto']} tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} />
                       <Tooltip content={TacticalTooltip} />
-                      <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.7} label={{ value: '100% MIN', position: 'insideBottomRight', fill: '#ef4444', fontSize: 8, fontWeight: 'bold' }} />
-                      <Line type="monotone" dataKey="LCR" name="LCR %" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} />
+                      <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.7} label={{ value: '100% REG MIN', position: 'insideBottomRight', fill: '#ef4444', fontSize: 8, fontWeight: 'bold' }} />
+                      <Line type="monotone" dataKey="LCR" name="LCR %" stroke="#3b82f6" strokeWidth={2.5} dot={false} isAnimationActive={false} />
                       <Line type="monotone" dataKey="NSFR" name="NSFR %" stroke="#14b8a6" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                      {hasCounterfactual && (
-                        <Line type="monotone" dataKey="Counterfactual_LCR" name="LCR (No Intervention)" stroke="#ef4444" strokeWidth={1.5} dot={false} strokeDasharray="4 4" isAnimationActive={false} connectNulls />
-                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-                <MethodologyBox label="Regulatory Methodology"
-                  staticText="LCR = HQLA ÷ Expected 30-Day Outflow. Basel III requires LCR ≥ 100%. NSFR = Available Stable Funding ÷ Required Stable Funding. ASF = Deposits × 90% + $15M Capital."
-                  dynamicText={current?.Methodology?.lcr_nsfr} />
-                <InterpretationBox icon={Shield} severity={lcr < 100 ? 'critical' : lcr < 120 ? 'warning' : 'info'} text={lcr < 100 ? 'LCR BREACH DETECTED. Immediate HQLA injection required.' : 'Regulatory buffers are within acceptable parameters but trend is negative.'} />
+                <InterpretationBox icon={Shield} severity={lcr < 100 ? 'critical' : lcr < 120 ? 'warning' : 'info'} text={lcrInterp} />
               </div>
 
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Survival Horizon Forecast</h3>
-                <div className="h-64">
+               {/* Net Liquidity vs HQLA */}
+               <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
+                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Net Liquidity Position & HQLA Buffer</h3>
+                <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                      <XAxis dataKey="Date" hide />
-                      <YAxis domain={[0, 365]} tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
-                      <Tooltip content={TacticalTooltip} />
-                      <ReferenceLine y={30} stroke="#ef4444" strokeDasharray="3 3" label={{ value: '30D CRIT', fill: '#ef4444', fontSize: 8 }} />
-                      <Line type="monotone" dataKey="LSTM_Survival" name="LSTM Neural" stroke="#a78bfa" strokeWidth={2} dot={false} isAnimationActive={false} connectNulls />
+                    <ComposedChart data={last7} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false}/>
+                      <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
+                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
+                      <ReferenceLine y={0} stroke="#ff3333" strokeDasharray="4 2" strokeWidth={0.5} />
+                      <defs>
+                        <linearGradient id="hqlaGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#66aaff" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#66aaff" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="HQLA" name="HQLA Buffer" stroke="#66aaff" fill="url(#hqlaGrad)" strokeWidth={1} dot={false} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="NLP" name="Net Liquidity" stroke="#fff" strokeWidth={2} dot={{ r: 2, fill: '#fff' }} isAnimationActive={false} />
+                      <Tooltip content={<TacticalTooltip />} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
-                <MethodologyBox label="Forecasting Methodology"
-                  staticText="LSTM: 3-layer neural net trained on real macro data (Fed Funds, VIX). Takes 30-day sliding window of 7 liquidity features."
-                  dynamicText={current?.Methodology?.survival} />
-                <InterpretationBox icon={Brain} severity={bestSurv < 60 ? 'critical' : 'info'} text={bestSurv < 60 ? `WARNING: High-confidence breach forecasted in ${bestSurv} days.` : 'Long-term survival trajectory remains stable.'} />
+                <InterpretationBox icon={Shield} text={nlpInterp} severity={nlpSev} />
               </div>
             </section>
 
-            {/* SECTION 3: INTERVENTIONS & NEWS */}
-            <SectionHeader icon={Terminal} title="Operational Control" subtitle="Active Interventions & Market Intelligence" tag="SEC_03" />
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-tactical-surface border border-tactical-border flex flex-col shadow-lg">
+            {/* ROW 3: SURVIVAL FORECAST (1 Graph taking full width) */}
+            <SectionHeader icon={Brain} title="AI Survival Models" subtitle="Deep Learning Forecast Horizon" tag="SEC_03" />
+            <section className="grid grid-cols-1 gap-6 mb-8">
+              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
+                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex justify-between">
+                  <span>LSTM Survival Prediction</span>
+                  <span className="text-[9px] font-mono bg-[#ffcc00]/20 text-[#ffcc00] px-2 py-0.5 border border-[#ffcc00]/30">LSTM NEURAL NET</span>
+                </h3>
+                <div className="flex-1 min-h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={survivalData} margin={{ top: 10, right: 10, left: 10, bottom: 15 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false}/>
+                      <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={30} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40}/>
+                      <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
+                      <ReferenceLine y={100} stroke="#d47b00" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'WARNING (100d)', position: 'insideBottomRight', fill: '#d47b00', fontSize: 8 }} />
+                      <ReferenceLine y={30} stroke="#ff3333" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'CRITICAL (30d)', position: 'insideBottomRight', fill: '#ff3333', fontSize: 8 }} />
+                      <Line type="monotone" dataKey="LSTM" name="LSTM Forecast" stroke="#ffcc00" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+                      <Tooltip content={<TacticalTooltip />} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <InterpretationBox icon={Brain} text={survInterp} severity={survSev} />
+              </div>
+            </section>
+
+            {/* ACTION PANEL: INTERVENTIONS */}
+            <SectionHeader icon={Terminal} title="Operational Control" subtitle="Active Interventions Deck" tag="SEC_04" />
+            <section className="grid grid-cols-1 gap-6">
+              <div className="bg-tactical-surface border border-tactical-border flex flex-col shadow-lg">
                 <div className="px-5 py-3 border-b border-tactical-border bg-[#111] flex justify-between items-center">
                   <span className="text-[10px] font-black tracking-widest uppercase text-white">Intervention Deck</span>
                   <span className="text-[9px] text-tactical-dim font-mono">{activeSolutions.length} ENGAGED</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                   {Object.entries(solutionCatalog).map(([sid, sol]) => {
                     const active = activeSolutions.find(a => a.id === sid);
                     return (
@@ -667,33 +770,6 @@ export default function App() {
                   })}
                 </div>
               </div>
-
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-5 gap-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold text-tactical-dim uppercase tracking-widest">Market Intelligence Sentiment</span>
-                  <span className={current?.Sentiment > 0 ? 'text-tactical-green' : 'text-tactical-red-bright'}>{current?.Sentiment?.toFixed(4) || '0.0000'}</span>
-                </div>
-                <div className="h-1 bg-tactical-border rounded-full overflow-hidden mb-2">
-                    <div className="h-full bg-white transition-all duration-500" style={{ width: `${Math.min(100, (current?.Sentiment + 0.5) * 100)}%` }}></div>
-                </div>
-                
-                {/* Fallback to display the latest news if present down here too */}
-                 {current?.News_Headline ? (
-                    <div className="mt-2 space-y-3">
-                      <p className="text-sm text-white font-sans font-black leading-tight tracking-tight uppercase border-l-2 border-white pl-3">{current.News_Headline}</p>
-                      <div className="flex items-center gap-3 text-[9px] font-mono text-tactical-dim">
-                        <span className="flex items-center gap-1"><Calendar size={10} /> {current.News_Age}D AGO</span>
-                        <span className="flex items-center gap-1"><AlertTriangle size={10} /> WT: {current.News_Weight?.toFixed(1)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-6 gap-2 opacity-30 mt-auto">
-                      <Rss size={30} />
-                      <span className="text-[10px] italic">Spectral silence in market channels.</span>
-                    </div>
-                  )}
-
-              </div>
             </section>
 
           </div>
@@ -713,7 +789,7 @@ export default function App() {
           </div>
         </div>
         <div className="text-[9px] font-mono text-tactical-dim uppercase tracking-tighter">
-          &copy; 2026 ANTIGRAVITY // DEEPMIND_ADVANCED_CODING_LAB // S/N: {Math.random().toString(36).substr(2, 6).toUpperCase()}
+          &copy; 2026 ANTIGRAVITY // FLUXSHIELD // S/N: {Math.random().toString(36).substr(2, 6).toUpperCase()}
         </div>
       </footer>
     </div>

@@ -1,7 +1,9 @@
 import smtplib
 import time
+import base64
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 from datetime import datetime
 
 
@@ -215,3 +217,64 @@ class CrisisEmailAlert:
         self._lcr_alert_sent = False
         self._survival_alert_sent = False
         self._last_sent_time = 0
+
+    # ------------------------------------------------------------------ #
+    #  Insolvency Report (Automatic Screenshot)
+    # ------------------------------------------------------------------ #
+    def send_insolvency_report(self, b64_image_data: str) -> bool:
+        """Sends an insolvency report with the dashboard screenshot attached."""
+        if not self.is_configured:
+            return False
+            
+        subject = "🚨 FINAL REPORT: Bank Insolvency Event"
+        html_body = """
+        <html>
+        <body style="font-family: Arial, sans-serif; color: #333; max-width: 600px;">
+            <div style="background: linear-gradient(135deg, #000000, #330000); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+                <h1 style="margin:0; color: #ff3333;">❌ BANK IS INSOLVENT</h1>
+            </div>
+            <div style="padding: 20px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 8px 8px;">
+                <p>The bank has completely depleted its Net Liquidity and HQLA buffer. <strong>Insolvency has occurred.</strong></p>
+                <p>An automated snapshot of the Risk Engine Dashboard at the moment of failure is attached to this email for forensic analysis.</p>
+                <hr style="border:none; border-top:1px solid #eee; margin:20px 0;">
+                <p style="font-size:12px; color:#999;">This is an automated post-mortem report from the Bank Liquidity Monitoring System.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        try:
+            msg = MIMEMultipart("mixed")
+            msg["Subject"] = subject
+            msg["From"] = self.sender_email
+            msg["To"] = self.recipient_email
+            
+            # Attach the HTML body
+            msg_body = MIMEMultipart("alternative")
+            msg_body.attach(MIMEText(html_body, "html"))
+            msg.attach(msg_body)
+            
+            # Parse the base64 string
+            if "base64," in b64_image_data:
+                b64_image_data = b64_image_data.split("base64,")[1]
+            file_bytes = base64.b64decode(b64_image_data)
+            
+            # Attach the PDF
+            from email.mime.application import MIMEApplication
+            attachment = MIMEApplication(file_bytes, _subtype="pdf")
+            attachment.add_header('Content-Disposition', 'attachment', filename='insolvency_full_report.pdf')
+            msg.attach(attachment)
+
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(self.sender_email, self.sender_password)
+                server.sendmail(self.sender_email, self.recipient_email, msg.as_string())
+
+            print(f"[EmailAlert] INSOLVENCY REPORT SENT to {self.recipient_email}")
+            return True
+
+        except Exception as e:
+            print(f"[EmailAlert] FAILED to send insolvency report: {e}")
+            return False
