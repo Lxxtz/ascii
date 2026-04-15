@@ -205,11 +205,13 @@ class BankSimulationEngine:
         """Apply a solution. Returns True if successful."""
         if solution_id not in SOLUTIONS:
             return False, "Unknown solution"
-        if solution_id in self.applied_solution_ids:
-            return False, "Already applied"
 
         sol = SOLUTIONS[solution_id]
         effects = sol["effects"]
+
+        # Duration-based solutions (loan freeze, deposit rates) can only be applied once
+        if sol["duration"] > 0 and solution_id in self.applied_solution_ids:
+            return False, "Already active"
 
         # Snapshot shadow state on first solution application
         if not self._counterfactual_active:
@@ -228,23 +230,19 @@ class BankSimulationEngine:
             self.deposit_multiplier_boost = effects["deposit_multiplier"]
             self.deposit_boost_remaining = sol["duration"]
 
-        # Track active solution
-        self.applied_solution_ids.add(solution_id)
+        # Track applied (duration-based get locked, instant can be re-applied)
         if sol["duration"] > 0:
-            self.active_solutions.append({
-                "id": solution_id,
-                "title": sol["title"],
-                "remaining": sol["duration"],
-                "effects": effects,
-            })
-        else:
-            # Instant solutions still show in active list briefly
-            self.active_solutions.append({
-                "id": solution_id,
-                "title": sol["title"],
-                "remaining": 1,
-                "effects": effects,
-            })
+            self.applied_solution_ids.add(solution_id)
+
+        # Track active solution with unique key
+        self._apply_counter = getattr(self, '_apply_counter', 0) + 1
+        self.active_solutions.append({
+            "id": solution_id,
+            "title": sol["title"],
+            "remaining": max(sol["duration"], 1),
+            "effects": effects,
+            "_key": f"{solution_id}_{self._apply_counter}",
+        })
 
         return True, f"Applied: {sol['title']}"
 
@@ -308,17 +306,25 @@ class BankSimulationEngine:
         if len(self._deposit_trend) > 5:
             self._deposit_trend = self._deposit_trend[-5:]
 
-        def _can_alert(alert_id, cooldown=10):
+        # Cooldown is shorter during crisis
+        base_cooldown = 3 if self.is_crisis else 8
+
+        def _can_alert(alert_id, cooldown=None):
+            if cooldown is None:
+                cooldown = base_cooldown
             last = self._alert_cooldowns.get(alert_id, -999)
             return self.day - last >= cooldown
 
-        def _fire(alert_id, severity, title, desc, solutions):
-            if not _can_alert(alert_id):
+        def _fire(alert_id, severity, title, desc, solutions, cooldown=None):
+            if not _can_alert(alert_id, cooldown):
                 return
-            # Filter out already-applied solutions
+            # Always include all solutions — instant ones can be re-applied
+            # Only filter out duration-based solutions that are currently active
             available = [s for s in solutions if s not in self.applied_solution_ids]
-            if not available and severity != "info":
-                return
+            # Add back instant solutions (duration=0) that can be re-applied
+            for s in solutions:
+                if s not in available and s in SOLUTIONS and SOLUTIONS[s]["duration"] == 0:
+                    available.append(s)
             self._alert_cooldowns[alert_id] = self.day
             alerts.append({
                 "id": alert_id,
@@ -358,12 +364,13 @@ class BankSimulationEngine:
                   f"LSTM model predicts only {self._lstm_survival} days until LCR breach.",
                   ["emergency_credit", "reduce_lending", "sell_loan_portfolio"])
 
-        # ── Crisis just triggered ──
-        if self.is_crisis and self.crisis_day_count <= 1:
-            _fire("crisis_onset", "critical",
-                  "Market Crisis Detected",
-                  "A systemic market crisis is underway. Deposit outflows accelerating, interbank rates spiking.",
-                  ["emergency_credit", "inject_hqla", "reduce_lending", "raise_deposit_rates", "sell_loan_portfolio"])
+        # ── Crisis ongoing (fires every few ticks, not just at onset) ──
+        if self.is_crisis:
+            _fire("crisis_ongoing", "critical",
+                  f"Market Crisis — Day {self.crisis_day_count}",
+                  f"Crisis day {self.crisis_day_count}: deposit outflows accelerating, interbank rates spiking. Apply emergency measures.",
+                  ["emergency_credit", "inject_hqla", "reduce_lending", "raise_deposit_rates", "sell_loan_portfolio"],
+                  cooldown=5)
 
         # ── Consecutive deposit outflows ──
         if len(self._deposit_trend) >= 3 and all(d < 0 for d in self._deposit_trend[-3:]):
