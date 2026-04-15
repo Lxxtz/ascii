@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid, Legend, ComposedChart
@@ -151,6 +153,50 @@ export default function App() {
     return () => clearInterval(simInterval.current);
   }, [isRunning, hasFailed]);
 
+  // ── Auto Report on Insolvency ──
+  const reportSentRef = useRef(false);
+
+  useEffect(() => {
+    if (hasFailed && !reportSentRef.current && contentRef.current) {
+      reportSentRef.current = true;
+      // Wait a moment for UI to visually reflect the "DEAD/INSOLVENT" state
+      setTimeout(() => {
+        html2canvas(contentRef.current, { backgroundColor: '#0a0a0a', scale: 1.5, windowHeight: contentRef.current.scrollHeight })
+          .then(canvas => {
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const pdf = new jsPDF('p', 'pt', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            let heightLeft = pdfHeight;
+            let position = 0;
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            
+            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+            heightLeft -= pageHeight;
+            
+            while (heightLeft >= 0) {
+              position = heightLeft - pdfHeight;
+              pdf.addPage();
+              pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+              heightLeft -= pageHeight;
+            }
+            
+            const pdfBase64 = pdf.output('datauristring');
+            fetch(apiUrl('/api/send-insolvency-report'), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image_data: pdfBase64 }),
+            }).catch(console.error);
+          });
+      }, 1500);
+    }
+    
+    // Reset block if simulation gets reset
+    if (!hasFailed && data.length === 0) {
+      reportSentRef.current = false;
+    }
+  }, [hasFailed, data.length]);
+
   // ── Controls ──
   const startSim = () => {
     if (data.length === 0) {
@@ -226,8 +272,8 @@ export default function App() {
   const nlpSev = nlpVal === undefined || nlpVal === null ? 'info' : nlpVal > 15_000_000 ? 'info' : nlpVal > 0 ? 'warning' : 'critical';
 
   // Survival interpretation
-  const survInterp = bestSurv === null ? 'Awaiting sufficient data for LSTM/Prophet model convergence (30+ days needed)...'
-    : bestSurv > 300 ? 'Ensemble forecast indicates survival horizon exceeds 300 days. No near-term breach risk.'
+  const survInterp = bestSurv === null ? 'Awaiting sufficient data for LSTM model convergence (30+ days needed)...'
+    : bestSurv > 300 ? 'Forecast indicates survival horizon exceeds 300 days. No near-term breach risk.'
     : bestSurv > 100 ? `Forecasted survival horizon: ${bestSurv} days. Models detect gradual stress accumulation.`
     : bestSurv > 30 ? `WARNING: Survival horizon at ${bestSurv} days. Breach trajectory accelerating — intervention recommended.`
     : `CRITICAL: Only ${bestSurv} days until projected LCR breach. Immediate emergency action required.`;
@@ -398,8 +444,8 @@ export default function App() {
       </header>
 
       {/* ═══ MAIN CONTENT ═══ */}
-      <div ref={contentRef} className="flex-1 overflow-y-auto no-scrollbar tactical-grid">
-        <div className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
+      <div className="flex-1 overflow-y-auto no-scrollbar tactical-grid">
+        <div ref={contentRef} className="max-w-[1400px] mx-auto px-6 py-6 space-y-6 bg-tactical-bg">
 
           {/* ═══ KPI SUMMARY CARDS ═══ */}
           <section className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -413,9 +459,7 @@ export default function App() {
             <KpiCard label="LSTM Forecast" value={lstmSurv !== undefined && lstmSurv !== null ? (lstmSurv > 365 ? '> 365d' : `${lstmSurv}d`) : '—'} icon="neurology"
               color={lstmSurv !== undefined && lstmSurv !== null && lstmSurv < 60 ? 'text-tactical-red-bright' : lstmSurv !== undefined && lstmSurv !== null && lstmSurv < 100 ? 'text-tactical-orange' : 'text-white'}
               sub="Deep Learning" />
-            <KpiCard label="Prophet Forecast" value={prophetSurv !== undefined && prophetSurv !== null ? (prophetSurv > 365 ? '> 365d' : `${prophetSurv}d`) : '—'} icon="query_stats"
-              color={prophetSurv !== undefined && prophetSurv !== null && prophetSurv < 60 ? 'text-tactical-red-bright' : prophetSurv !== undefined && prophetSurv !== null && prophetSurv < 100 ? 'text-tactical-orange' : 'text-white'}
-              sub="Time-Series" />
+            <KpiCard label="Model Health" value="OPTIMAL" color="text-tactical-green" icon="check_circle" sub="System Status" />
           </section>
 
           {/* ═══════════════════════════════════════════════════════════
@@ -435,10 +479,10 @@ export default function App() {
               </div>
               <div className="flex-1 p-3" style={{ minHeight: '220px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={last30}>
+                  <AreaChart data={last30} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
-                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} label={{ value: 'TIME (DAYS)', position: 'insideBottom', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} label={{ value: 'AMOUNT ($)', angle: -90, position: 'insideLeft', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
                     <Tooltip content={<TacticalTooltip />} />
                     <Area type="monotone" dataKey="Daily_Deposits" name="Deposits" stroke="#04d45b" fill="#04d45b" fillOpacity={0.15} strokeWidth={1.5} dot={false} isAnimationActive={false} />
                     <Area type="monotone" dataKey="Daily_Withdrawals" name="Withdrawals" stroke="#ff3333" fill="#ff3333" fillOpacity={0.1} strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -464,10 +508,10 @@ export default function App() {
               </div>
               <div className="flex-1 p-3" style={{ minHeight: '220px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={last30} barGap={-1}>
+                  <BarChart data={last30} barGap={-1} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
-                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} label={{ value: 'TIME (DAYS)', position: 'insideBottom', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} label={{ value: 'AMOUNT ($)', angle: -90, position: 'insideLeft', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
                     <Tooltip content={<TacticalTooltip />} />
                     <Bar dataKey="Daily_Loans_Given" name="Loans Issued" fill="#ff9933" fillOpacity={0.7} isAnimationActive={false} />
                     <Bar dataKey="Daily_Loans_Repaid" name="Repayments" fill="#66aaff" fillOpacity={0.7} isAnimationActive={false} />
@@ -501,10 +545,10 @@ export default function App() {
               </div>
               <div className="flex-1 p-3" style={{ minHeight: '220px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={last7}>
+                  <LineChart data={last7} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
-                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={['auto', 'auto']} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} label={{ value: 'TIME (DAYS)', position: 'insideBottom', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={['auto', 'auto']} label={{ value: 'RATIO (%)', angle: -90, position: 'insideLeft', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
                     <ReferenceLine y={100} stroke="#ff3333" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'BASEL III MIN (100%)', position: 'insideBottomRight', fill: '#ff3333', fontSize: 8 }} />
                     <Line type="monotone" dataKey="LCR" name="LCR %" stroke="#04d45b" strokeWidth={2} dot={{ r: 2, fill: '#04d45b' }} isAnimationActive={false} />
                     <Line type="monotone" dataKey="NSFR" name="NSFR %" stroke="#aaa" strokeWidth={1.5} dot={{ r: 2, fill: '#aaa' }} isAnimationActive={false} />
@@ -526,10 +570,10 @@ export default function App() {
               </div>
               <div className="flex-1 p-3" style={{ minHeight: '220px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={last7}>
+                  <ComposedChart data={last7} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
-                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} label={{ value: 'TIME (DAYS)', position: 'insideBottom', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} label={{ value: 'AMOUNT ($)', angle: -90, position: 'insideLeft', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
                     <ReferenceLine y={0} stroke="#ff3333" strokeDasharray="4 2" strokeWidth={0.5} label={{ value: 'INSOLVENCY', position: 'insideBottomRight', fill: '#ff3333', fontSize: 8 }} />
                     <defs>
                       <linearGradient id="hqlaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -558,22 +602,18 @@ export default function App() {
               <div className="px-4 pt-4 pb-2 border-b border-tactical-border/50 flex justify-between items-center shrink-0">
                 <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-tactical-dim">Forecasted Survival Horizon</span>
                 <div className="flex gap-4 text-[9px] font-sans font-bold">
-                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 bg-[#ffcc00]"></span> LSTM</span>
-                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 bg-[#ff66ff]"></span> PROPHET</span>
-                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 bg-[#ff66ff33]"></span> LOWER BOUND</span>
+                  <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 bg-[#ffcc00]"></span> LSTM FORECAST</span>
                 </div>
               </div>
               <div className="flex-1 p-3" style={{ minHeight: '250px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={survivalData}>
+                  <ComposedChart data={survivalData} margin={{ top: 10, right: 10, left: 10, bottom: 15 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={2} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
-                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={[0, 'auto']} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={2} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} label={{ value: 'TIME (DAYS)', position: 'insideBottom', offset: -5, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={[0, 'auto']} label={{ value: 'SURVIVAL (DAYS)', angle: -90, position: 'insideLeft', offset: 0, fill: '#555', fontSize: 9, fontWeight: 'bold' }} />
                     <ReferenceLine y={100} stroke="#d47b00" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'WARNING (100d)', position: 'insideTopRight', fill: '#d47b00', fontSize: 8 }} />
                     <ReferenceLine y={30} stroke="#ff3333" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'CRITICAL (30d)', position: 'insideTopRight', fill: '#ff3333', fontSize: 8 }} />
-                    <Area type="monotone" dataKey="Prophet_Lower" name="Prophet Lower" stroke="none" fill="#ff66ff" fillOpacity={0.08} isAnimationActive={false} />
                     <Line type="monotone" dataKey="LSTM" name="LSTM Forecast" stroke="#ffcc00" strokeWidth={2} dot={false} isAnimationActive={false} />
-                    <Line type="monotone" dataKey="Prophet" name="Prophet Forecast" stroke="#ff66ff" strokeWidth={1.5} dot={false} isAnimationActive={false} strokeDasharray="4 2" />
                     <Tooltip content={<TacticalTooltip />} />
                   </ComposedChart>
                 </ResponsiveContainer>
@@ -676,7 +716,7 @@ export default function App() {
 
           {/* Footer */}
           <div className="text-[9px] text-tactical-dim font-mono text-center py-4 tracking-widest uppercase border-t border-tactical-border/30">
-            SYSTEM_USER: AUTHORIZED // DATA_STREAM: ENCRYPTED // ENGINE_BUILD: V2.1.4-PROD // MODELS: LSTM_V3 + PROPHET_V2
+            SYSTEM_USER: AUTHORIZED // DATA_STREAM: ENCRYPTED // ENGINE_BUILD: V2.1.4-PROD // MODELS: LSTM_V3
           </div>
         </div>
       </div>

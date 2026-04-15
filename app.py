@@ -91,6 +91,19 @@ def step_simulation():
         ],
     }
 
+from pydantic import BaseModel
+
+class ReportPayload(BaseModel):
+    image_data: str
+
+@app.post("/api/send-insolvency-report")
+def send_insolvency_report_api(payload: ReportPayload):
+    success = email_service.send_insolvency_report(payload.image_data)
+    if success:
+        return {"status": "success", "message": "Report sent"}
+    else:
+        return {"status": "error", "message": "Failed to send report"}
+
 @app.get("/")
 def read_root():
     return {"message": "Bank Liquidity Real-Time API is running!"}
