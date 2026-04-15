@@ -200,11 +200,11 @@ class CrisisEmailAlert:
                 server.sendmail(self.sender_email, self.recipient_email, msg.as_string())
 
             self._last_sent_time = time.time()
-            print(f"[EmailAlert] ✅ Sent: {subject}  →  {self.recipient_email}")
+            print(f"[EmailAlert] SENT: {subject}  ->  {self.recipient_email}")
             return True
 
         except Exception as e:
-            print(f"[EmailAlert] ❌ Failed to send: {e}")
+            print(f"[EmailAlert] FAILED to send: {e}")
             return False
 
     # ------------------------------------------------------------------ #

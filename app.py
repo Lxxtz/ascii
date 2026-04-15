@@ -21,10 +21,6 @@ app.add_middleware(
 class SolutionRequest(BaseModel):
     solution_id: str
 
-class EmailConfigRequest(BaseModel):
-    sender_email: str
-    sender_password: str
-    recipient_email: str
 
 @app.post("/api/start")
 def start_simulation():
@@ -59,20 +55,7 @@ def get_solutions():
         }
     }
 
-# ─── Email Alert Configuration ──────────────────────────────────────
-@app.post("/api/email/configure")
-def configure_email(req: EmailConfigRequest):
-    """Configure Gmail credentials for crisis alerts."""
-    email_service.configure(req.sender_email, req.sender_password, req.recipient_email)
-    return {"status": "configured", "recipient": req.recipient_email}
 
-@app.get("/api/email/status")
-def email_status():
-    """Return current email alert configuration status."""
-    return {
-        "is_configured": email_service.is_configured,
-        "recipient": email_service.recipient_email if email_service.is_configured else None,
-    }
 
 @app.get("/api/step")
 def step_simulation():
