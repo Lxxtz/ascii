@@ -3,8 +3,38 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, ComposedChart
 } from 'recharts';
-import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity, Bell, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity, Bell, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import './index.css';
+
+// ─── Expandable Methodology Box ───
+function MethodologyBox({ label, staticText, dynamicText }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className={`methodology-box ${expanded ? 'expanded' : ''}`}>
+      <button className="methodology-toggle" onClick={() => setExpanded(e => !e)}>
+        <div className="methodology-toggle-left">
+          <Info size={13} />
+          <span className="methodology-label">{label}</span>
+        </div>
+        <div className="methodology-toggle-right">
+          <span className="methodology-hint">{expanded ? 'Hide' : 'Show'} Methodology</span>
+          {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="methodology-content">
+          <div className="methodology-static">{staticText}</div>
+          {dynamicText && (
+            <div className="methodology-dynamic">
+              <div className="methodology-dynamic-label">Current Tick Computation</div>
+              <div className="methodology-formula">{dynamicText}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Solution catalog (synced with backend SOLUTIONS) ───
 // duration > 0 means it can only be applied once (tracked globally)
@@ -345,9 +375,11 @@ function App() {
                       <Line isAnimationActive={false} type="monotone" dataKey="Daily_Withdrawals" stroke="#ef4444" dot={false} strokeWidth={1.5} name="Withdrawals" />
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="analysis-box">
-                    <strong>Interpretation:</strong> Tracks inbound deposit flows versus outbound withdrawals. Under stable conditions, deposits marginally exceed withdrawals. During crisis, withdrawals escalate exponentially while deposits collapse.
-                  </div>
+                  <MethodologyBox
+                    label="Daily Cash Flows"
+                    staticText="Deposits are sampled as DepositPool × U(0.2%, 0.6%) then modulated by sentiment multiplier dep_mult = max(0.4, 1 + sentiment). Withdrawals are DepositPool × U(0.2%, 0.55%) × with_mult = max(0.4, 1 − sentiment). During crisis: deposits collapse to U(0.01%, 0.1%) while withdrawals escalate by factor (1 + crisisDays × 0.05), capped at 5×. News events shift sentiment by base × weight (e.g., a 'Critical' negative event shifts sentiment by −0.15 × 3.0 = −0.45). Sentiment decays at 0.80× per tick when no news fires. All flows are interdependent: deposits feed HQLA; withdrawals drain it; net cash flow = (Deposits + LoanRepay) − (Withdrawals + LoansGiven)."
+                    dynamicText={current?.Methodology?.cash_flows}
+                  />
                 </div>
 
                 <div className="chart-card">
@@ -363,9 +395,11 @@ function App() {
                       <Line isAnimationActive={false} type="monotone" dataKey="Daily_Loans_Repaid" stroke="#a78bfa" dot={false} strokeWidth={1.5} name="Repayments" />
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="analysis-box">
-                    <strong>Interpretation:</strong> Monitors the loan book. Under normal conditions, the bank issues new loans while collecting repayments. During crisis, loan issuance halts as the bank conserves liquidity.
-                  </div>
+                  <MethodologyBox
+                    label="Lending Activity"
+                    staticText="Loans Issued = DepositPool × U(0.1%, 0.3%) during normal operations. Repayments = LoanPool × U(0.15%, 0.4%). During crisis: issuance drops to U(0%, 0.05%) as the bank preserves capital, while repayments slow to U(0.05%, 0.15%). If a 'Freeze Lending' solution is active, loan issuance = $0. The loan pool directly affects the Loan-to-Deposit Ratio (LDR = LoanPool/DepositPool × 100%) and the Net Stable Funding Ratio (RSF = LoanPool × 85%). Higher loan pool requires more stable funding, creating feedback into NSFR."
+                    dynamicText={current?.Methodology?.lending}
+                  />
                 </div>
 
                 {/* Market Liquidity */}
@@ -398,12 +432,11 @@ function App() {
                       )}
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="analysis-box">
-                    <strong>Interpretation:</strong> LCR measures 30-day survival capacity against the Basel III 100% minimum. NSFR measures structural funding stability.
-                    {hasCounterfactual && (
-                      <span style={{ color: '#ef4444' }}> The <strong>dotted red line</strong> shows the counterfactual LCR trajectory without any applied interventions.</span>
-                    )}
-                  </div>
+                  <MethodologyBox
+                    label="Regulatory Compliance (LCR & NSFR)"
+                    staticText={`LCR = HQLA ÷ Expected 30-Day Outflow × 100%. Expected outflow = max(DepositPool × 10%, $100). Basel III requires LCR ≥ 100%. NSFR = Available Stable Funding (ASF) ÷ Required Stable Funding (RSF) × 100%. ASF = Deposits × 90% + Capital ($15M). RSF = LoanPool × 85%. HQLA is rebalanced toward a target of DepositPool × 20% with a 5% drift rate per tick. Both ratios are fully interdependent: withdrawals reduce deposit pool → reduces expected outflow denominator but also drains HQLA → both ratios decline simultaneously during stress.${hasCounterfactual ? ' The dotted red line shows counterfactual LCR without any applied interventions — the shadow simulation runs in parallel using raw (unmodified) cash flows.' : ''}`}
+                    dynamicText={current?.Methodology?.lcr_nsfr}
+                  />
                 </div>
 
                 <div className="chart-card">
@@ -433,12 +466,11 @@ function App() {
                       )}
                     </LineChart>
                   </ResponsiveContainer>
-                  <div className="analysis-box">
-                    <strong>Interpretation:</strong> HQLA represents unencumbered liquid assets. NLP crossing zero triggers insolvency.
-                    {hasCounterfactual && (
-                      <span style={{ color: '#f97316' }}> <strong>Dotted lines</strong> show what would have happened without your interventions.</span>
-                    )}
-                  </div>
+                  <MethodologyBox
+                    label="Net Liquidity Position & HQLA Buffer"
+                    staticText={`NLP = Base HQLA ($20M) + Cumulative Net Cash Flow. When NLP < $0, the bank is insolvent. HQLA is dynamically updated each tick: if net cash flow is negative, HQLA absorbs the loss with an additional haircut (5-15% during crisis, 0% normally) — modeling fire-sale losses on liquidated assets. HQLA then drifts toward target (DepositPool × 20%) at 5% per tick, plus Gaussian market noise N(0, 0.1%). Interventions like HQLA injection directly add to the buffer; selling loan portfolio converts illiquid loans to liquid assets.${hasCounterfactual ? ' Dotted lines show NLP/HQLA trajectories without any interventions — the shadow simulation runs with raw cash flows.' : ''}`}
+                    dynamicText={current?.Methodology?.nlp_hqla}
+                  />
                 </div>
 
                 {/* Structural Liquidity */}
@@ -462,11 +494,11 @@ function App() {
                       <Line isAnimationActive={false} type="stepAfter" dataKey="Prophet_Lower" stroke="#14b8a6" dot={false} strokeWidth={1} strokeDasharray="4 4" strokeOpacity={0.4} name="Prophet Lower Bound" connectNulls />
                     </ComposedChart>
                   </ResponsiveContainer>
-                  <div className="analysis-box">
-                    <strong>Interpretation:</strong> Two independent models forecast when the bank's LCR will breach the 100% Basel III minimum.
-                    <strong> LSTM</strong> (purple): 3-layer, 256-unit deep neural network pre-trained on 5 years of synthetic data.
-                    <strong> Prophet</strong> (teal): Facebook's time-series forecasting model with changepoint detection.
-                  </div>
+                  <MethodologyBox
+                    label="Survival Forecast Models"
+                    staticText="Two independent models forecast days until LCR breaches 100%. LSTM (purple): A 3-layer, 256-hidden-unit deep neural network pre-trained on ~1,500 business days of data calibrated to real FRED macro data (2019-2024 Fed Funds Rate, VIX, 10Y Treasury) across 4 real crisis periods (COVID-19, 2022 rate hikes, UK gilt crisis, SVB). Takes a 30-day sliding window of 7 features: [repo_rate, sentiment, loans_net_ratio, crisis_flag, LCR, hqla_ratio, LDR]. Outputs normalized survival → scaled to days. Smoothed with 50% EMA. Prophet (teal): Facebook's time-series model fitted on historical LCR % values with a 'crisis' regressor. Uses aggressive changepoint detection (prior_scale=0.9, range=0.95) and refits every 15 ticks (5 during crisis). Forecasts 365 days ahead; finds first day where yhat < 100%."
+                    dynamicText={current?.Methodology?.survival}
+                  />
                 </div>
               </div>
             </main>

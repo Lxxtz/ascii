@@ -633,13 +633,62 @@ class BankSimulationEngine:
             "News_Type":               self.latest_news["type"]     if self.latest_news else None,
             "News_Weight":             self.latest_news.get("weight", 0) if self.latest_news else 0,
             "News_Age":                self.latest_news["days_ago"] if self.latest_news else 0,
-            # ── New fields ──
+            # ── Counterfactual ──
             "Counterfactual_LCR":      counterfactual["LCR"] if counterfactual else None,
             "Counterfactual_NLP":      counterfactual["NLP"] if counterfactual else None,
             "Counterfactual_HQLA":     counterfactual["HQLA"] if counterfactual else None,
+            # ── Methodology — real-time formulas ──
+            "Methodology": {
+                "cash_flows": (
+                    f"Deposits = Pool × U(0.002,0.006) × depMult({dep_mult:.3f}) = ${daily_in:,.0f}. "
+                    f"Withdrawals = Pool × U(0.002,0.0055) × withMult({with_mult:.3f}) = ${daily_out:,.0f}. "
+                    + (f"CRISIS MODE: escalation={1.0 + self.crisis_day_count * 0.05:.2f}×, deposits suppressed to U(0.0001,0.001). " if self.is_crisis else "")
+                    + f"Sentiment={self.market_sentiment:.4f} → depMult=max(0.4, 1+sent), withMult=max(0.4, 1−sent). "
+                    + (f"Loan freeze active ({self.loan_freeze_remaining}d remaining). " if self.loan_freeze_remaining > 0 else "")
+                    + (f"Deposit rate boost ×{self.deposit_multiplier_boost:.2f} ({self.deposit_boost_remaining}d remaining). " if self.deposit_boost_remaining > 0 else "")
+                    + f"Net cash flow = (Deposits + LoanRepay) − (Withdrawals + LoansGiven) = ${net_cash_flow:,.0f}."
+                ),
+                "lending": (
+                    f"Loans Issued = Pool × U(0.001,0.003) = ${daily_l_given:,.0f}. "
+                    f"Repayments = LoanPool × U(0.0015,0.004) = ${daily_l_repay:,.0f}. "
+                    + (f"Crisis: lending frozen to U(0,0.0005), repayments slow to U(0.0005,0.0015). " if self.is_crisis else "")
+                    + f"Net lending = Issued − Repaid = ${(daily_l_given - daily_l_repay):,.0f}. "
+                    f"Loan-to-Deposit ratio = LoanPool/DepositPool = {ldr:.2f}%."
+                ),
+                "lcr_nsfr": (
+                    f"LCR = HQLA / Expected30dOutflow × 100. "
+                    f"HQLA = ${self.current_hqla:,.0f}, Expected30dOutflow = DepositPool × 10% = ${expected_30d_outflow:,.0f}. "
+                    f"LCR = {lcr*100:.2f}% (Basel III min: 100%). "
+                    f"NSFR = ASF/RSF × 100. ASF = Deposits×0.90 + Capital = ${asf:,.0f}. "
+                    f"RSF = Loans×0.85 = ${rsf:,.0f}. NSFR = {nsfr*100:.2f}% (min: 100%). "
+                    f"HQLA target = DepositPool × 20% = ${target_hqla:,.0f}; "
+                    f"rebalance drift = (target − HQLA) × 5% = ${rebalance_drift:,.0f}."
+                ),
+                "nlp_hqla": (
+                    f"NLP = BaseHQLA + CumulativeNetCash = ${self.base_hqla:,.0f} + ${self.cumulative_net_cash:,.0f} = ${nlp:,.0f}. "
+                    f"NLP < 0 → insolvency. "
+                    f"HQLA updated by: netCashFlow × (1 + haircut) if negative, else + netCashFlow. "
+                    + (f"Crisis haircut applied: 5-15% additional loss on negative flows. " if self.is_crisis else "No haircut (normal operations). ")
+                    + f"Market noise: HQLA × N(0, 0.001) = ${market_variation:,.0f}. "
+                    f"Total HQLA = ${self.current_hqla:,.0f}."
+                ),
+                "survival": (
+                    f"LSTM: 3-layer, 256-unit LSTM trained on 5 years of realistic macro data "
+                    f"(Fed Funds, VIX, 10Y Treasury, 4 crisis periods). Input: 30-day sliding window of "
+                    f"[repo_rate, sentiment, loans_net_ratio, crisis_flag, LCR, hqla_ratio, LDR]. "
+                    f"Output: {lstm_pred}d until LCR < 100%. "
+                    + (f"Prophet: Time-series model with crisis regressor, "
+                       f"changepoint_prior={0.9}, refitted every {prophet_interval} ticks. "
+                       f"Output: {prophet_pred}d (lower bound: {self._prophet_lower}d). " if PROPHET_AVAILABLE else "Prophet: not available. ")
+                    + f"Feature vector: [repo={self.repo_rate:.2f}, sent={self.market_sentiment:.4f}, "
+                    f"loansNet={loans_net/max(self.current_deposit_pool,1):.6f}, crisis={crisis_val}, "
+                    f"lcr={lcr:.4f}, hqlaRatio={hqla_ratio:.4f}, ldr={ldr_ratio:.4f}]."
+                ),
+            },
         }
 
         self.history.append(record)
         self.day += 1
         return record, alerts
+
 
