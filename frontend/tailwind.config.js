@@ -8,17 +8,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        "tactical-bg": "#121212",
-        "tactical-surface": "#1a1a1a",
-        "tactical-panel": "#1d1d1d",
-        "tactical-border": "#2c2c2c",
-        "tactical-text": "#e0e0e0",
-        "tactical-dim": "#707070",
-        "tactical-red-bright": "#ff3333",
-        "tactical-red-dark": "#380808",
-        "tactical-red-panel": "#5e0b0b",
-        "tactical-green": "#04d45b",
-        "tactical-orange": "#d47b00",
+        "tactical-bg": "var(--tactical-bg)",
+        "tactical-surface": "var(--tactical-surface)",
+        "tactical-panel": "var(--tactical-panel)",
+        "tactical-border": "var(--tactical-border)",
+        "tactical-text": "var(--tactical-text)",
+        "tactical-dim": "var(--tactical-dim)",
+        "tactical-red-bright": "var(--tactical-red-bright)",
+        "tactical-red-dark": "var(--tactical-red-dark)",
+        "tactical-red-panel": "var(--tactical-red-panel)",
+        "tactical-green": "var(--tactical-green)",
+        "tactical-orange": "var(--tactical-orange)",
       },
       fontFamily: {
         "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],

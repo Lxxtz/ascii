@@ -8,9 +8,9 @@ import {
 import {
   Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap,
   TrendingDown, Activity, Bell, ChevronRight, ChevronLeft, Building, Droplet, BarChart2, Cpu, ChevronDown,
-  ChevronUp, Info, Terminal, Settings, Gavel, Brain, LineChart as QueryStats,
+  ChevronUp, Info, Terminal, Gavel, Brain, LineChart as QueryStats,
   Calendar, Gauge as Speed, Landmark as AccountBalance,
-  CreditCard as CreditScore
+  CreditCard as CreditScore, Sun, Moon
 } from 'lucide-react';
 
 const MonitorHeart = Activity; // Alias manually to avoid duplicate import binding
@@ -103,7 +103,7 @@ const SectionHeader = ({ icon: Icon, title, subtitle, tag }) => (
 );
 
 const InterpretationBox = ({ icon: Icon, text, severity }) => (
-  <div className={`flex items-start gap-2 px-4 py-3 border-l-2 text-[10px] font-sans leading-relaxed mt-2 ${severity === 'critical' ? 'border-tactical-red-bright bg-[#1a0a0a] text-[#ffaaaa]' :
+  <div className={`flex items-start gap-2 px-4 py-3 border-l-2 text-[11px] font-sans leading-relaxed mt-2 rounded-lg ${severity === 'critical' ? 'border-tactical-red-bright bg-[#1a0a0a] text-[#ffaaaa]' :
       severity === 'warning' ? 'border-tactical-orange bg-[#1a1400] text-tactical-orange' :
         'border-tactical-dim bg-[#141414] text-[#999]'
     }`}>
@@ -113,14 +113,14 @@ const InterpretationBox = ({ icon: Icon, text, severity }) => (
 );
 
 const KpiCard = ({ label, value, sub, color, icon: Icon }) => (
-  <div className="bg-tactical-surface border border-tactical-border p-4 flex flex-col gap-1 min-w-0 shadow-sm relative overflow-hidden group">
+  <div className="glass-kpi p-4 flex flex-col gap-1 min-w-0 relative overflow-visible group rounded-xl">
     <div className="absolute top-0 right-0 w-16 h-16 bg-white/5 rounded-full blur-xl -mr-8 -mt-8 group-hover:bg-white/10 transition-all"></div>
     <div className="flex items-center gap-1.5 z-10">
       {Icon && <Icon className="text-tactical-dim" size={14} /> }
-      <span className="text-[9px] font-sans font-bold text-tactical-dim uppercase tracking-widest truncate">{label}</span>
+      <span className="text-[10px] font-sans font-bold text-tactical-dim uppercase tracking-widest truncate">{label}</span>
     </div>
     <span className={`text-2xl font-black font-mono truncate z-10 ${color || 'text-white'}`}>{value}</span>
-    {sub && <span className="text-[9px] text-tactical-dim font-mono truncate z-10">{sub}</span>}
+    {sub && <span className="text-[10px] text-tactical-dim font-mono truncate z-10">{sub}</span>}
   </div>
 );
 
@@ -138,6 +138,7 @@ export default function App() {
   const [activeSolutions, setActiveSolutions] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isLightMode, setIsLightMode] = useState(false);
 
   const simInterval = useRef(null);
   const contentRef = useRef(null);
@@ -178,10 +179,7 @@ export default function App() {
         setSystemAlerts(prev => [...newAlerts, ...prev].slice(0, 30));
         setUnreadCount(prev => prev + newAlerts.length);
 
-        if (newAlerts.some(a => a.severity === 'critical')) {
-          setShowNotifications(true);
-          setUnreadCount(0);
-        }
+
       }
     } catch (e) {
       console.error('[Engine] step error:', e);
@@ -317,14 +315,14 @@ export default function App() {
   const unreadAlerts = systemAlerts.filter(a => a.severity === 'critical').length;
 
   return (
-    <div className="flex flex-col w-full h-screen bg-tactical-bg text-tactical-text font-mono overflow-hidden">
+    <div className={`flex flex-col w-full h-screen bg-tactical-bg text-tactical-text font-mono overflow-hidden ${isLightMode ? 'light-mode' : ''}`}>
 
       {/* ═══ TOP BAR ═══ */}
-      <header className="h-12 shrink-0 border-b border-tactical-border/60 flex items-center justify-between px-5 bg-[#0a0a0a] z-30">
+      <header className="h-12 shrink-0 border-b border-tactical-border flex items-center justify-between px-5 bg-tactical-surface z-30">
         <div className="flex items-center gap-3">
           <Terminal className="text-tactical-dim" size={18} />
-          <span className="text-xs font-bold tracking-widest text-white font-sans">FLUXSHIELD</span>
-          <span className="text-[9px] text-tactical-dim font-mono ml-3">
+          <span className="text-xs font-bold tracking-widest text-tactical-text font-sans">FLUXSHIELD</span>
+          <span className="text-[9px] text-tactical-dim font-mono ml-3 font-semibold">
             {current ? `DAY ${data.length} // ${current.Date}` : 'AWAITING INIT'}
           </span>
         </div>
@@ -399,7 +397,9 @@ export default function App() {
               </>
             )}
           </div>
-          <button className="p-1.5 text-tactical-dim hover:text-white"><Settings size={20} /></button>
+          <button onClick={() => setIsLightMode(!isLightMode)} className="p-1.5 text-tactical-dim hover:text-white transition-colors">
+            {isLightMode ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
         </div>
       </header>
 
@@ -598,7 +598,7 @@ export default function App() {
                   <Rss size={24} color={current.News_Type === 'positive' ? '#22c55e' : current.News_Type === 'negative' ? '#ef4444' : '#6b7280'} />
                   <div>
                     <div className="text-[9px] uppercase tracking-widest text-tactical-dim font-bold mb-1">Market Intelligence — {current.News_Type}</div>
-                    <div className="text-sm text-white font-sans font-bold leading-tight uppercase">{current.News_Headline}</div>
+                    <div className="text-sm text-tactical-text font-sans font-bold leading-tight uppercase">{current.News_Headline}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-[10px] font-mono text-tactical-dim bg-black/30 px-3 py-1.5 rounded">
@@ -612,10 +612,10 @@ export default function App() {
             <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
               <KpiCard label="Status" value={statusText} color={statusColor} icon={MonitorHeart} sub={isCrisis ? 'CRITICAL STATE' : 'MONITORING'} />
               <KpiCard label="Date" value={current?.Date || '—'} icon={Calendar} sub={`Day ${data.length}`} />
-              <KpiCard label="LCR" value={lcr !== undefined ? `${lcr.toFixed(2)}%` : '—'} icon={Speed} color={lcr < 100 ? 'text-tactical-red-bright' : lcr < 120 ? 'text-tactical-orange' : 'text-white'} sub="Basel III Coverage" />
+              <KpiCard label="LCR" value={lcr !== undefined ? `${lcr.toFixed(2)}%` : '—'} icon={Speed} color={lcr < 100 ? 'text-tactical-red-bright' : lcr < 120 ? 'text-tactical-orange' : 'text-tactical-text'} sub="Basel III Coverage" />
               <KpiCard label="Net Liquidity" value={fmt(nlpVal)} icon={AccountBalance} sub="Total HQLA Pool" />
               <KpiCard label="L-to-D Ratio" value={ldr !== undefined ? `${ldr.toFixed(2)}%` : '—'} icon={CreditScore} sub="Funding Structure" />
-              <KpiCard label="LSTM Surv." value={lstmSurv !== undefined ? (lstmSurv >= 365 ? '365d+' : `${lstmSurv}d`) : '—'} icon={Brain} color={lstmSurv < 100 ? 'text-tactical-orange' : 'text-white'} sub="Deep Forecast" />
+              <KpiCard label="LSTM Surv." value={lstmSurv !== undefined ? (lstmSurv >= 365 ? '365d+' : `${lstmSurv}d`) : '—'} icon={Brain} color={lstmSurv < 100 ? 'text-tactical-orange' : 'text-tactical-text'} sub="Deep Forecast" />
             </section>
 
             {/* ROW 1: FUNDING LIQUIDITY & LENDING (2 Graphs) */}
@@ -623,15 +623,15 @@ export default function App() {
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               
               {/* Deposit/Withdrawal Chart */}
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex items-center justify-between">
+              <div className="glass-panel flex flex-col p-4 rounded-xl">
+                <h3 className="text-[11px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex items-center justify-between">
                   <span>Net Cashflow (Deposits vs Withdrawals)</span>
                   <span className="text-[9px] font-mono bg-black/30 px-2 py-0.5 border border-tactical-border text-tactical-dim">30D WINDOW</span>
                 </h3>
                 <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={last30} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--tactical-border)" vertical={false} />
                       <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval={Math.floor(last30.length / 5)} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                       <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
                       <Tooltip content={<TacticalTooltip />} />
@@ -644,12 +644,12 @@ export default function App() {
               </div>
 
                {/* Lending Velocity */}
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Lending Activities</h3>
+              <div className="glass-panel flex flex-col p-4 rounded-xl">
+                <h3 className="text-[11px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Lending Activities</h3>
                 <div className="w-full min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={last30} barGap={-1} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--tactical-border)" vertical={false} />
                       <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval={Math.floor(last30.length / 5)} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                       <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
                       <Tooltip content={<TacticalTooltip />} cursor={{fill: '#f4f4f4', opacity: 0.1}}/>
@@ -667,15 +667,15 @@ export default function App() {
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               
               {/* LCR / NSFR Line Chart */}
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
+              <div className="glass-panel flex flex-col p-4 rounded-xl">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-[10px] font-bold text-tactical-dim uppercase tracking-[0.2em]">Ratio Monitoring (LCR & NSFR)</h3>
+                  <h3 className="text-[11px] font-bold text-tactical-dim uppercase tracking-[0.2em]">Ratio Monitoring (LCR & NSFR)</h3>
                   {hasCounterfactual && <span className="text-[8px] text-tactical-red-bright font-black tracking-widest bg-tactical-red-bright/10 px-2 py-0.5 border border-tactical-red-bright/20 uppercase animate-pulse">Counterfactual Active</span>}
                 </div>
                 <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 15 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--tactical-border)" vertical={false} />
                       <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={30} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40}/>
                       <YAxis domain={[0, 'auto']} tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} />
                       <Tooltip content={TacticalTooltip} />
@@ -689,12 +689,12 @@ export default function App() {
               </div>
 
                {/* Net Liquidity vs HQLA */}
-               <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Net Liquidity Position & HQLA Buffer</h3>
+               <div className="glass-panel flex flex-col p-4 rounded-xl">
+                <h3 className="text-[11px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em]">Net Liquidity Position & HQLA Buffer</h3>
                 <div className="flex-1 min-h-[260px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={last7} margin={{ top: 10, right: 10, left: 20, bottom: 15 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false}/>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--tactical-border)" vertical={false}/>
                       <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                       <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
                       <ReferenceLine y={0} stroke="#ff3333" strokeDasharray="4 2" strokeWidth={0.5} />
@@ -717,15 +717,15 @@ export default function App() {
             {/* ROW 3: SURVIVAL FORECAST (1 Graph taking full width) */}
             <SectionHeader icon={Brain} title="AI Survival Models" subtitle="Deep Learning Forecast Horizon" tag="SEC_03" />
             <section className="grid grid-cols-1 gap-6 mb-8">
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col p-4 shadow-md">
-                <h3 className="text-[10px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex justify-between">
+              <div className="glass-panel flex flex-col p-4 rounded-xl">
+                <h3 className="text-[11px] font-bold text-tactical-dim mb-4 uppercase tracking-[0.2em] flex justify-between">
                   <span>LSTM Survival Prediction</span>
                   <span className="text-[9px] font-mono bg-[#ffcc00]/20 text-[#ffcc00] px-2 py-0.5 border border-[#ffcc00]/30">LSTM NEURAL NET</span>
                 </h3>
                 <div className="flex-1 min-h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={survivalData} margin={{ top: 10, right: 10, left: 10, bottom: 15 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false}/>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--tactical-border)" vertical={false}/>
                       <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={30} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40}/>
                       <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
                       <ReferenceLine y={100} stroke="#d47b00" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'WARNING (100d)', position: 'insideBottomRight', fill: '#d47b00', fontSize: 8 }} />
@@ -739,49 +739,18 @@ export default function App() {
               </div>
             </section>
 
-            {/* ACTION PANEL: INTERVENTIONS */}
-            <SectionHeader icon={Terminal} title="Operational Control" subtitle="Active Interventions Deck" tag="SEC_04" />
-            <section className="grid grid-cols-1 gap-6">
-              <div className="bg-tactical-surface border border-tactical-border flex flex-col shadow-lg">
-                <div className="px-5 py-3 border-b border-tactical-border bg-[#111] flex justify-between items-center">
-                  <span className="text-[10px] font-black tracking-widest uppercase text-white">Intervention Deck</span>
-                  <span className="text-[9px] text-tactical-dim font-mono">{activeSolutions.length} ENGAGED</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-                  {Object.entries(solutionCatalog).map(([sid, sol]) => {
-                    const active = activeSolutions.find(a => a.id === sid);
-                    return (
-                      <div key={sid} className={`p-4 border-b border-r border-tactical-border/50 group transition-all ${active ? 'bg-white/5 border-white/20' : 'hover:bg-white/2 cursor-pointer'}`}
-                        onClick={() => !active && applySolution(sid)}>
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2">
-                            <Zap size={14} className={active ? 'text-tactical-green' : 'text-tactical-dim'} />
-                            <span className={`text-[10px] font-bold ${active ? 'text-white' : 'text-[#888]'}`}>{sol.title.toUpperCase()}</span>
-                          </div>
-                          {active ? (
-                            <span className="text-[8px] bg-tactical-green text-black px-1.5 py-0.5 font-bold animate-pulse">ACTIVE {active.remaining}D</span>
-                          ) : (
-                            <span className="text-[8px] text-tactical-dim group-hover:text-white transition-colors">READY</span>
-                          )}
-                        </div>
-                        <p className="text-[9px] text-[#555] leading-relaxed line-clamp-2">{sol.description}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
+            {/* ACTION PANEL REMOVED AS REQUESTED */}
 
           </div>
         )}
       </div>
 
       {/* ═══ FOOTER STATUS ═══ */}
-      <footer className="h-8 shrink-0 bg-[#0d0d0d] border-t border-tactical-border flex items-center justify-between px-6 z-30">
+      <footer className="h-8 shrink-0 bg-tactical-surface border-t border-tactical-border flex items-center justify-between px-6 z-30">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-tactical-green' : 'bg-tactical-red-bright'} animate-pulse`}></div>
-            <span className="text-[9px] font-bold text-white tracking-widest uppercase">Engine Status: {isRunning ? 'Running' : 'Offline'}</span>
+            <span className="text-[9px] font-bold text-tactical-text tracking-widest uppercase">Engine Status: {isRunning ? 'Running' : 'Offline'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Shield size={12} className="text-tactical-dim" />

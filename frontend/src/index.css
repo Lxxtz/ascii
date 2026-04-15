@@ -5,18 +5,217 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #121212;
+  --tactical-bg: #121212;
+  --tactical-surface: #1a1a1a;
+  --tactical-panel: #1d1d1d;
+  --tactical-border: #2c2c2c;
+  --tactical-text: #e0e0e0;
+  --tactical-dim: #707070;
+  --tactical-red-bright: #ff3333;
+  --tactical-red-dark: #380808;
+  --tactical-red-panel: #5e0b0b;
+  --tactical-green: #04d45b;
+  --tactical-orange: #d47b00;
+
+  --bg-primary: var(--tactical-bg);
   --bg-secondary: #0a0a0a;
-  --bg-surface: #1a1a1a;
-  --bg-panel: #1d1d1d;
-  --border-tactical: #2c2c2c;
+  --bg-surface: var(--tactical-surface);
+  --bg-panel: var(--tactical-panel);
+  --border-tactical: var(--tactical-border);
   --text-active: #ffffff;
-  --text-primary: #e0e0e0;
-  --text-dim: #707070;
+  --text-primary: var(--tactical-text);
+  --text-dim: var(--tactical-dim);
   --text-muted: #4a4a4a;
-  --red-bright: #ff3333;
-  --orange: #d47b00;
-  --green: #04d45b;
+  --red-bright: var(--tactical-red-bright);
+  --orange: var(--tactical-orange);
+  --green: var(--tactical-green);
+}
+
+.light-mode {
+  --tactical-bg: #f9fafb;
+  --tactical-surface: #ffffff;
+  --tactical-panel: #ffffff;
+  --tactical-border: #e2e8f0;
+  --tactical-text: #111827;
+  --tactical-dim: #6b7280;
+  --tactical-red-bright: #ef4444;
+  --tactical-red-dark: #fca5a5;
+  --tactical-red-panel: #fee2e2;
+  --tactical-green: #22c55e;
+  --tactical-orange: #f97316;
+
+  --bg-secondary: #ffffff;
+  --text-active: #000000;
+  --text-muted: #9ca3af;
+}
+
+/* ─── Light-mode: hardcoded hex overrides ─── */
+.light-mode .bg-\[\#0a0a0a\],
+.light-mode .bg-\[\#0d0d0d\],
+.light-mode .bg-\[\#111\] {
+  background-color: var(--bg-secondary) !important;
+}
+
+.light-mode .text-white {
+  color: var(--text-active) !important;
+}
+
+.light-mode .text-\[\#aaa\],
+.light-mode .text-\[\#888\],
+.light-mode .text-\[\#555\],
+.light-mode .text-\[\#999\] {
+  color: #555 !important;
+}
+
+.light-mode .text-\[\#ffaaaa\] {
+  color: #c62828 !important;
+}
+
+.light-mode .bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+.light-mode .bg-\[\#1a0a0a\] {
+  background-color: #fff0f0 !important;
+}
+
+.light-mode .bg-\[\#1a1400\] {
+  background-color: #fff8e8 !important;
+}
+
+.light-mode .bg-\[\#141414\] {
+  background-color: #f0f0ec !important;
+}
+
+.light-mode .border-\[\#333\] {
+  border-color: var(--tactical-border) !important;
+}
+
+.light-mode .border-tactical-border\/60 {
+  border-color: var(--tactical-border) !important;
+}
+
+.light-mode .border-white {
+  border-color: var(--tactical-border) !important;
+}
+
+/* Light-mode tactical grid dots */
+.light-mode .tactical-grid {
+  background-image:
+    radial-gradient(#f1f5f9 1px, transparent 1px),
+    radial-gradient(#f1f5f9 1px, transparent 1px) !important;
+}
+
+/* Light-mode: landing page cards & text */
+.light-mode .info-card {
+  background: rgba(240, 234, 210, 0.5) !important;
+  border-color: rgba(200, 190, 165, 0.5) !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.light-mode .info-card:hover {
+  border-color: #bbb5a0 !important;
+  background: rgba(240, 234, 210, 0.65) !important;
+}
+
+.light-mode .metric-abbr {
+  color: #111 !important;
+}
+
+.light-mode .metric-desc {
+  color: #444 !important;
+}
+
+.light-mode .metric-desc strong {
+  color: #111 !important;
+}
+
+.light-mode .metric-fullname {
+  color: #666 !important;
+}
+
+.light-mode .section-title {
+  color: #111 !important;
+}
+
+.light-mode .section-subtitle {
+  color: #555 !important;
+}
+
+.light-mode .formula-box {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #555 !important;
+}
+
+.light-mode .model-card {
+  background: #f0ead2 !important;
+  border-color: #d5ceb5 !important;
+}
+
+.light-mode .model-name {
+  color: #111 !important;
+}
+
+.light-mode .model-header {
+  border-bottom-color: rgba(0,0,0,0.08) !important;
+}
+
+.light-mode .model-prop-row {
+  border-bottom-color: rgba(0,0,0,0.05) !important;
+}
+
+.light-mode .prop-label {
+  color: #666 !important;
+}
+
+.light-mode .prop-value {
+  color: #111 !important;
+}
+
+.light-mode .model-summary-box {
+  background: rgba(0,0,0,0.03) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+  color: #444 !important;
+}
+
+.light-mode .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+.light-mode .bg-white\/10 {
+  background-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.light-mode .glass-panel {
+  background: var(--tactical-surface) !important;
+  border-color: var(--tactical-border) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.light-mode .glass-panel:hover {
+  border-color: #cbd5e1 !important;
+  background: var(--tactical-surface) !important;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
+}
+
+.light-mode .glass-kpi {
+  background: var(--tactical-surface) !important;
+  border-color: var(--tactical-border) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.light-mode .InterpretationBox-Active {
+  background: #ffffff !important;
+  border-color: #86efac !important;
+  border-left-color: #22c55e !important;
+  border-left-width: 4px !important;
 }
 
 body {
@@ -32,10 +231,31 @@ body {
 @layer utilities {
   .tactical-grid {
     background-image:
-      radial-gradient(#2a2a2a 1px, transparent 1px),
-      radial-gradient(#2a2a2a 1px, transparent 1px);
+      radial-gradient(#1e1e1e 1px, transparent 1px),
+      radial-gradient(#1e1e1e 1px, transparent 1px);
     background-size: 32px 32px;
     background-position: 0 0, 16px 16px;
+  }
+
+  /* ── Glassmorphism panels ── */
+  .glass-panel {
+    background: rgba(26, 26, 26, 0.65);
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+
+  .glass-panel:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-kpi {
+    background: rgba(26, 26, 26, 0.5);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255,255,255,0.03);
   }
 
   .no-scrollbar::-webkit-scrollbar {
@@ -330,20 +550,24 @@ body {
   }
 }
 
-/* General Card style */
+/* General Card style – Glassmorphism */
 .info-card {
-  background: #1a1e2b;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: rgba(26, 30, 43, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1.6rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s, border-color 0.2s;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  overflow: visible;
 }
 
 .info-card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
 }
 
 .metric-info-header {
@@ -409,20 +633,20 @@ body {
 }
 
 .metric-abbr {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #fff;
 }
 
 .metric-fullname {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
 .metric-desc {
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.65;
   margin-bottom: 2rem;
   flex: 1;
 }
@@ -435,10 +659,10 @@ body {
 .formula-box {
   background: rgba(0, 0, 0, 0.25);
   border: 1px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.72rem;
+  font-size: 0.76rem;
   color: #94a3b8;
   line-height: 1.5;
   margin-top: auto;
