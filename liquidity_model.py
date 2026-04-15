@@ -43,6 +43,45 @@ NEWS_EVENTS = [
     {"headline": "Quarterly earnings season opens with mixed corporate results", "base": 0.01, "weight": 0.5},
 ]
 
+# ─── Proposed Solutions Registry ────────────────────────────────────
+SOLUTIONS = {
+    "inject_hqla": {
+        "title": "Emergency HQLA Injection",
+        "description": "Inject $5M of high-quality liquid assets from reserve facilities to shore up the liquidity buffer.",
+        "severity": "warning",
+        "effects": {"hqla_inject": 5_000_000},
+        "duration": 0,  # Instant one-shot
+    },
+    "reduce_lending": {
+        "title": "Freeze New Loan Issuance",
+        "description": "Halt all new loan originations for 15 days to preserve cash and reduce outflow pressure.",
+        "severity": "warning",
+        "effects": {"loan_freeze": True},
+        "duration": 15,
+    },
+    "emergency_credit": {
+        "title": "Activate Emergency Credit Line",
+        "description": "Draw $10M from the emergency credit facility — $5M to deposits, $5M to HQLA — to stabilize the balance sheet.",
+        "severity": "critical",
+        "effects": {"deposit_inject": 5_000_000, "hqla_inject": 5_000_000},
+        "duration": 0,
+    },
+    "raise_deposit_rates": {
+        "title": "Raise Deposit Rates (+50bp)",
+        "description": "Increase deposit rates by 50 basis points to attract inflows. Deposit multiplier boosted 1.3x for 20 days.",
+        "severity": "warning",
+        "effects": {"deposit_multiplier": 1.3},
+        "duration": 20,
+    },
+    "sell_loan_portfolio": {
+        "title": "Sell Loan Portfolio ($8M)",
+        "description": "Liquidate $8M of the loan book at a 25% haircut, converting to $6M HQLA immediately.",
+        "severity": "critical",
+        "effects": {"loan_sell": 8_000_000, "hqla_inject": 6_000_000},
+        "duration": 0,
+    },
+}
+
 # ─── LSTM Architecture (Fixed) ──────────────────────────────────────
 class SurvivalLSTM(nn.Module):
     """Direct regression: 30-day features → survival days."""
@@ -69,183 +108,31 @@ if DEVICE.type == "cuda":
 else:
     print()
 
-# ─── Pre-Training Data with Fix ─────────────────────────────────────
-def generate_pretraining_data(n_days=1500):
-    """Generate bank data with many crisis cycles + pre-crisis rampdowns."""
-    deposit_pool = 100_000_000.0
-    loan_pool    = 70_000_000.0
-    hqla         = 20_000_000.0
-    repo         = 5.0
-    sentiment    = 0.0
+# ─── Load Pre-Trained Model from Disk ───────────────────────────────
+import os as _os
+_MODEL_DIR = _os.path.dirname(_os.path.abspath(__file__))
+_MODEL_PATH = _os.path.join(_MODEL_DIR, "survival_lstm.pt")
+_NORM_PATH = _os.path.join(_MODEL_DIR, "feature_normalization.npz")
 
-    # 8 crisis windows of varying severity for richer training
-    crisis_windows = [
-        (100, 160), (280, 350), (450, 530), (620, 680),
-        (780, 860), (950, 1020), (1150, 1220), (1350, 1420),
-    ]
-    pre_crisis_windows = [(s - 40, s) for s, e in crisis_windows]
+if not _os.path.exists(_MODEL_PATH) or not _os.path.exists(_NORM_PATH):
+    raise FileNotFoundError(
+        f"Pre-trained model not found!\n"
+        f"  Expected: {_MODEL_PATH}\n"
+        f"           {_NORM_PATH}\n"
+        f"  Run 'python train_model.py' first to train and save the model."
+    )
 
-    features, lcr_values = [], []
+_pretrained_model = SurvivalLSTM(input_size=7).to(DEVICE)
+_pretrained_model.load_state_dict(torch.load(_MODEL_PATH, map_location=DEVICE, weights_only=True))
+_pretrained_model.eval()
 
-    for day in range(n_days):
-        is_crisis = any(s <= day <= e for s, e in crisis_windows)
-        is_pre_crisis = any(s <= day <= e for s, e in pre_crisis_windows)
-        crisis_day_count = 0
-        if is_crisis:
-            for s, e in crisis_windows:
-                if s <= day <= e:
-                    crisis_day_count = day - s + 1
-        pre_crisis_severity = 0.0
-        if is_pre_crisis:
-            for s, e in pre_crisis_windows:
-                if s <= day <= e:
-                    pre_crisis_severity = (day - s + 1) / (e - s + 1)
+_norm_data = np.load(_NORM_PATH)
+_pt_fmin = _norm_data["f_min"]
+_pt_fmax = _norm_data["f_max"]
 
-        repo += np.random.normal(0, 0.05)
+print(f"[Engine] Loaded pre-trained LSTM from {_MODEL_PATH}")
+print(f"[Engine] Loaded normalization params from {_NORM_PATH}")
 
-        if is_crisis:
-            daily_in = deposit_pool * np.random.uniform(0.0001, 0.001)
-            escalation = min(1.0 + crisis_day_count * 0.04, 4.0)
-            daily_out = deposit_pool * np.random.uniform(0.003, 0.008) * escalation
-            daily_l_given = deposit_pool * np.random.uniform(0.0, 0.0005)
-            daily_l_repay = loan_pool * np.random.uniform(0.0005, 0.0015)
-        elif is_pre_crisis:
-            # Gradually worsening: withdrawals increase, deposits decrease
-            daily_in  = deposit_pool * np.random.uniform(0.001, 0.004) * (1.0 - pre_crisis_severity * 0.5)
-            daily_out = deposit_pool * np.random.uniform(0.002, 0.006) * (1.0 + pre_crisis_severity * 0.8)
-            daily_l_given = deposit_pool * np.random.uniform(0.0005, 0.002)
-            daily_l_repay = loan_pool * np.random.uniform(0.001, 0.003)
-        else:
-            daily_in_base  = deposit_pool * np.random.uniform(0.002, 0.006)
-            daily_out_base = deposit_pool * np.random.uniform(0.002, 0.0055)
-            daily_in  = max(0, daily_in_base + daily_in_base * np.random.uniform(-0.6, 0.8))
-            daily_out = max(0, daily_out_base + daily_out_base * np.random.uniform(-0.6, 0.8))
-            daily_l_given = deposit_pool * np.random.uniform(0.001, 0.003)
-            daily_l_repay = loan_pool * np.random.uniform(0.0015, 0.004)
-
-        # News impact
-        if day > 0 and day % 10 == 0:
-            ev = random.choice(NEWS_EVENTS)
-            sentiment += ev["base"] * ev["weight"]
-        else:
-            sentiment *= 0.80
-
-        dep_mult  = max(0.4, 1.0 + sentiment)
-        with_mult = max(0.4, 1.0 - sentiment)
-        daily_in  *= dep_mult
-        daily_out *= with_mult
-
-        deposit_pool += (daily_in - daily_out)
-        deposit_pool = max(deposit_pool, 1000)
-        loan_pool += (daily_l_given - daily_l_repay)
-        loan_pool = max(loan_pool, 1000)
-
-        net_cash = (daily_in + daily_l_repay) - (daily_out + daily_l_given)
-        if net_cash < 0:
-            haircut = np.random.uniform(0.05, 0.15) if is_crisis else 0.0
-            hqla += net_cash * (1.0 + haircut)
-        else:
-            hqla += net_cash
-
-        target_hqla = deposit_pool * 0.20
-        hqla += (target_hqla - hqla) * 0.05 + hqla * np.random.normal(0, 0.001)
-
-        expected_outflow = max(deposit_pool * 0.10, 100)
-        lcr = min(hqla / expected_outflow, 5.0)
-        hqla_ratio = hqla / max(deposit_pool, 1)
-        loans_net = daily_l_given - daily_l_repay
-        crisis_val = 1.0 if is_crisis else (0.5 if is_pre_crisis else 0.0)
-        ldr = loan_pool / max(deposit_pool, 1)
-
-        features.append([repo, sentiment, loans_net / max(deposit_pool, 1), crisis_val, lcr, hqla_ratio, ldr])
-        lcr_values.append(lcr)
-
-    features_arr = np.array(features, dtype=np.float32)
-    lcr_arr = np.array(lcr_values, dtype=np.float32)
-
-    # Compute ground-truth survival labels
-    labels = np.full(n_days, 365.0, dtype=np.float32)
-    for i in range(n_days):
-        if lcr_arr[i] < 1.0:
-            labels[i] = 0.0
-        else:
-            for j in range(i + 1, min(i + 366, n_days)):
-                if lcr_arr[j] < 1.0:
-                    labels[i] = float(j - i)
-                    break
-
-    return features_arr, labels
-
-
-def pretrain_lstm(features, labels, seq_len=30, epochs=1000, lr=0.003):
-    """Pre-train with oversampled crisis data and Huber loss."""
-    n = len(features)
-    f_min = features.min(axis=0)
-    f_max = features.max(axis=0)
-    rng = f_max - f_min; rng[rng == 0] = 1.0
-    X_norm = (features - f_min) / rng
-
-    # Normalize labels to [0, 1]
-    Y_norm = labels / 365.0
-
-    # Build sequences
-    sequences, targets = [], []
-    crisis_sequences, crisis_targets = [], []  # For oversampling
-
-    for i in range(n - seq_len):
-        seq = X_norm[i:i+seq_len]
-        target = Y_norm[i + seq_len]
-        sequences.append(seq)
-        targets.append(target)
-        # If this is a low-survival sample, collect for oversampling
-        if target < 0.85:  # survival < ~310 days
-            crisis_sequences.append(seq)
-            crisis_targets.append(target)
-
-    # Oversample crisis data 8x
-    print(f"[Pre-train] Normal samples: {len(sequences)}, Crisis samples: {len(crisis_sequences)} (will 5x oversample)")
-    for _ in range(8):
-        sequences.extend(crisis_sequences)
-        targets.extend(crisis_targets)
-
-    # Shuffle
-    combined = list(zip(sequences, targets))
-    random.shuffle(combined)
-    sequences, targets = zip(*combined)
-
-    X_t = torch.tensor(np.array(sequences), dtype=torch.float32).to(DEVICE)
-    Y_t = torch.tensor(np.array(targets), dtype=torch.float32).unsqueeze(1).to(DEVICE)
-
-    model = SurvivalLSTM(input_size=features.shape[1]).to(DEVICE)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
-    criterion = nn.SmoothL1Loss()  # Huber loss — robust to label imbalance
-
-    print(f"[Pre-train] {len(X_t)} total sequences ({len(crisis_sequences)} crisis × 8 oversampled), {epochs} epochs on {DEVICE}...")
-    t0 = time.time()
-
-    model.train()
-    for epoch in range(epochs):
-        optimizer.zero_grad()
-        pred = model(X_t)
-        loss = criterion(pred, Y_t)
-        loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        optimizer.step()
-        scheduler.step()
-        if (epoch + 1) % 200 == 0:
-            print(f"   Epoch {epoch+1}/{epochs}  Loss: {loss.item():.6f}")
-
-    elapsed = time.time() - t0
-    print(f"[Pre-train] Done in {elapsed:.1f}s  Final loss: {loss.item():.6f}")
-    model.eval()
-    return model, f_min, f_max
-
-
-# ─── Run pre-training ───────────────────────────────────────────────
-print("[Engine] Generating 4+ years of labeled training data...")
-_pt_features, _pt_labels = generate_pretraining_data(1500)
-_pretrained_model, _pt_fmin, _pt_fmax = pretrain_lstm(_pt_features, _pt_labels, seq_len=30, epochs=1000)
 
 
 # ─── Simulation Engine ──────────────────────────────────────────────
@@ -289,8 +176,203 @@ class BankSimulationEngine:
 
         self.history = []
 
+        # ── Solutions State ──
+        self.active_solutions = []  # [{id, title, remaining, effects}]
+        self.applied_solution_ids = set()
+        self.loan_freeze_remaining = 0
+        self.deposit_multiplier_boost = 1.0
+        self.deposit_boost_remaining = 0
+
+        # ── Counterfactual Shadow State ──
+        self._counterfactual_active = False
+        self._shadow_deposit_pool = None
+        self._shadow_loan_pool = None
+        self._shadow_hqla = None
+        self._shadow_cumulative_net = None
+        self._shadow_market_sentiment = None
+        self._shadow_crisis_day_count = 0
+
+        # ── Alert cooldowns (prevent spamming) ──
+        self._alert_cooldowns = {}
+        self._lcr_trend = []  # last 5 LCR values for drop detection
+        self._deposit_trend = []  # last 5 net deposit flows
+
     def trigger_crisis(self):
         self.is_crisis = True
+
+    # ── Solution Application ─────────────────────────────────────────
+    def apply_solution(self, solution_id):
+        """Apply a solution. Returns True if successful."""
+        if solution_id not in SOLUTIONS:
+            return False, "Unknown solution"
+        if solution_id in self.applied_solution_ids:
+            return False, "Already applied"
+
+        sol = SOLUTIONS[solution_id]
+        effects = sol["effects"]
+
+        # Snapshot shadow state on first solution application
+        if not self._counterfactual_active:
+            self._snapshot_shadow_state()
+
+        # Apply instant effects
+        if "hqla_inject" in effects:
+            self.current_hqla += effects["hqla_inject"]
+        if "deposit_inject" in effects:
+            self.current_deposit_pool += effects["deposit_inject"]
+        if "loan_sell" in effects:
+            self.current_loan_pool = max(1000, self.current_loan_pool - effects["loan_sell"])
+        if "loan_freeze" in effects:
+            self.loan_freeze_remaining = sol["duration"]
+        if "deposit_multiplier" in effects:
+            self.deposit_multiplier_boost = effects["deposit_multiplier"]
+            self.deposit_boost_remaining = sol["duration"]
+
+        # Track active solution
+        self.applied_solution_ids.add(solution_id)
+        if sol["duration"] > 0:
+            self.active_solutions.append({
+                "id": solution_id,
+                "title": sol["title"],
+                "remaining": sol["duration"],
+                "effects": effects,
+            })
+        else:
+            # Instant solutions still show in active list briefly
+            self.active_solutions.append({
+                "id": solution_id,
+                "title": sol["title"],
+                "remaining": 1,
+                "effects": effects,
+            })
+
+        return True, f"Applied: {sol['title']}"
+
+    def _snapshot_shadow_state(self):
+        """Fork the current state for counterfactual tracking."""
+        self._counterfactual_active = True
+        self._shadow_deposit_pool = self.current_deposit_pool
+        self._shadow_loan_pool = self.current_loan_pool
+        self._shadow_hqla = self.current_hqla
+        self._shadow_cumulative_net = self.cumulative_net_cash
+        self._shadow_market_sentiment = self.market_sentiment
+        self._shadow_crisis_day_count = self.crisis_day_count
+
+    def _step_shadow(self, daily_in_raw, daily_out_raw, daily_l_given_raw, daily_l_repay_raw,
+                     dep_mult, with_mult, is_crisis):
+        """Run one tick of the shadow (no-solution) simulation."""
+        if not self._counterfactual_active:
+            return None
+
+        # Shadow uses raw cash flows WITHOUT solution modifiers
+        s_daily_in = daily_in_raw * dep_mult
+        s_daily_out = daily_out_raw * with_mult
+
+        self._shadow_deposit_pool += (s_daily_in - s_daily_out)
+        self._shadow_deposit_pool = max(self._shadow_deposit_pool, 1000)
+        self._shadow_loan_pool += (daily_l_given_raw - daily_l_repay_raw)
+        self._shadow_loan_pool = max(self._shadow_loan_pool, 1000)
+
+        s_net = (s_daily_in + daily_l_repay_raw) - (s_daily_out + daily_l_given_raw)
+        s_variation = self._shadow_hqla * np.random.normal(0, 0.0005)  # slight noise
+        if s_net < 0:
+            haircut = np.random.uniform(0.05, 0.15) if is_crisis else 0.0
+            self._shadow_hqla += s_net * (1.0 + haircut)
+        else:
+            self._shadow_hqla += s_net
+
+        target = self._shadow_deposit_pool * 0.20
+        self._shadow_hqla += (target - self._shadow_hqla) * 0.05 + s_variation
+
+        s_expected_outflow = max(self._shadow_deposit_pool * 0.10, 100)
+        s_lcr = min(self._shadow_hqla / s_expected_outflow, 5.0)
+
+        self._shadow_cumulative_net += s_net
+        s_nlp = self.base_hqla + self._shadow_cumulative_net
+
+        return {
+            "LCR": round(s_lcr * 100, 2),
+            "NLP": round(s_nlp, 2),
+            "HQLA": round(self._shadow_hqla, 2),
+        }
+
+    def _check_alerts(self, lcr, net_deposit_flow):
+        """Detect conditions and return alerts with suggested solutions."""
+        alerts = []
+
+        # Update trends
+        self._lcr_trend.append(lcr)
+        if len(self._lcr_trend) > 5:
+            self._lcr_trend = self._lcr_trend[-5:]
+        self._deposit_trend.append(net_deposit_flow)
+        if len(self._deposit_trend) > 5:
+            self._deposit_trend = self._deposit_trend[-5:]
+
+        def _can_alert(alert_id, cooldown=10):
+            last = self._alert_cooldowns.get(alert_id, -999)
+            return self.day - last >= cooldown
+
+        def _fire(alert_id, severity, title, desc, solutions):
+            if not _can_alert(alert_id):
+                return
+            # Filter out already-applied solutions
+            available = [s for s in solutions if s not in self.applied_solution_ids]
+            if not available and severity != "info":
+                return
+            self._alert_cooldowns[alert_id] = self.day
+            alerts.append({
+                "id": alert_id,
+                "severity": severity,
+                "title": title,
+                "description": desc,
+                "solutions": available,
+            })
+
+        # ── LCR dropping rapidly (>10% over 5 ticks) ──
+        if len(self._lcr_trend) >= 5:
+            lcr_drop = self._lcr_trend[0] - self._lcr_trend[-1]
+            if lcr_drop > 0.10:
+                _fire("lcr_rapid_drop", "warning",
+                      "LCR Declining Rapidly",
+                      f"LCR has dropped {lcr_drop*100:.1f}% over the last 5 days. Immediate action recommended.",
+                      ["inject_hqla", "reduce_lending", "raise_deposit_rates"])
+
+        # ── LCR below warning threshold ──
+        if lcr < 1.2 and lcr >= 1.0:
+            _fire("lcr_warning", "warning",
+                  "LCR Approaching Regulatory Minimum",
+                  f"LCR at {lcr*100:.1f}% — dangerously close to the 100% Basel III floor.",
+                  ["inject_hqla", "reduce_lending", "sell_loan_portfolio"])
+
+        # ── LCR below critical threshold ──
+        if lcr < 1.0:
+            _fire("lcr_critical", "critical",
+                  "LCR BREACH — Below Regulatory Minimum",
+                  f"LCR has fallen to {lcr*100:.1f}%, breaching the 100% Basel III requirement. Emergency action required.",
+                  ["emergency_credit", "inject_hqla", "sell_loan_portfolio"])
+
+        # ── Survival forecast critical ──
+        if self._lstm_survival is not None and self._lstm_survival < 60:
+            _fire("survival_critical", "critical",
+                  "Survival Horizon Critical",
+                  f"LSTM model predicts only {self._lstm_survival} days until LCR breach.",
+                  ["emergency_credit", "reduce_lending", "sell_loan_portfolio"])
+
+        # ── Crisis just triggered ──
+        if self.is_crisis and self.crisis_day_count <= 1:
+            _fire("crisis_onset", "critical",
+                  "Market Crisis Detected",
+                  "A systemic market crisis is underway. Deposit outflows accelerating, interbank rates spiking.",
+                  ["emergency_credit", "inject_hqla", "reduce_lending", "raise_deposit_rates", "sell_loan_portfolio"])
+
+        # ── Consecutive deposit outflows ──
+        if len(self._deposit_trend) >= 3 and all(d < 0 for d in self._deposit_trend[-3:]):
+            _fire("deposit_outflow", "warning",
+                  "Sustained Deposit Outflows",
+                  "Net deposit outflows for 3+ consecutive days. Deposit base eroding.",
+                  ["raise_deposit_rates", "inject_hqla"])
+
+        return alerts
 
     # ── LSTM Prediction ──────────────────────────────────────────────
     def _normalize(self, arr):
@@ -405,6 +487,22 @@ class BankSimulationEngine:
             daily_l_given = self.current_deposit_pool * np.random.uniform(0.000, 0.0005)
             daily_l_repay = self.current_loan_pool * np.random.uniform(0.0005, 0.0015)
 
+        # ── Save raw values for shadow sim BEFORE solution modifiers ──
+        daily_in_raw = daily_in
+        daily_out_raw = daily_out
+        daily_l_given_raw = daily_l_given
+        daily_l_repay_raw = daily_l_repay
+
+        # ── Apply ongoing solution effects ──
+        if self.loan_freeze_remaining > 0:
+            daily_l_given = 0.0
+            self.loan_freeze_remaining -= 1
+        if self.deposit_boost_remaining > 0:
+            daily_in *= self.deposit_multiplier_boost
+            self.deposit_boost_remaining -= 1
+            if self.deposit_boost_remaining == 0:
+                self.deposit_multiplier_boost = 1.0
+
         # ── Weighted News ──
         news_impact = None
         if self.day > 0 and self.day % 10 == 0:
@@ -459,6 +557,12 @@ class BankSimulationEngine:
         if nlp < 0:
             self.has_failed = True
 
+        # ── Run counterfactual shadow sim ──
+        counterfactual = self._step_shadow(
+            daily_in_raw, daily_out_raw, daily_l_given_raw, daily_l_repay_raw,
+            dep_mult, with_mult, self.is_crisis
+        )
+
         # ── Track features ──
         loans_net = daily_l_given - daily_l_repay
         crisis_val = 1.0 if self.is_crisis else 0.0
@@ -489,6 +593,18 @@ class BankSimulationEngine:
             self._prophet_survival = 0
             self._prophet_lower = 0
 
+        # ── Check for alerts ──
+        net_deposit_flow = daily_in - daily_out
+        alerts = self._check_alerts(lcr, net_deposit_flow)
+
+        # ── Tick down active solutions ──
+        still_active = []
+        for sol in self.active_solutions:
+            sol["remaining"] -= 1
+            if sol["remaining"] > 0:
+                still_active.append(sol)
+        self.active_solutions = still_active
+
         record = {
             "Date":                    current_date.strftime('%Y-%m-%d'),
             "LCR":                     round(lcr * 100, 2),
@@ -510,8 +626,13 @@ class BankSimulationEngine:
             "News_Type":               self.latest_news["type"]     if self.latest_news else None,
             "News_Weight":             self.latest_news.get("weight", 0) if self.latest_news else 0,
             "News_Age":                self.latest_news["days_ago"] if self.latest_news else 0,
+            # ── New fields ──
+            "Counterfactual_LCR":      counterfactual["LCR"] if counterfactual else None,
+            "Counterfactual_NLP":      counterfactual["NLP"] if counterfactual else None,
+            "Counterfactual_HQLA":     counterfactual["HQLA"] if counterfactual else None,
         }
 
         self.history.append(record)
         self.day += 1
-        return record
+        return record, alerts
+

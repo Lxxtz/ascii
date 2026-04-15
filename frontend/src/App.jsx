@@ -1,16 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, ReferenceLine, Area, ComposedChart
+  ResponsiveContainer, ReferenceLine, ComposedChart
 } from 'recharts';
-import { Play, Pause, AlertTriangle, RefreshCw, Rss } from 'lucide-react';
+import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity } from 'lucide-react';
 import './index.css';
+
+// ─── Solution catalog (synced with backend SOLUTIONS) ───
+const SOLUTION_CATALOG = {
+  inject_hqla: { title: "Emergency HQLA Injection", short: "Inject $5M HQLA" },
+  reduce_lending: { title: "Freeze New Loan Issuance", short: "Freeze Lending" },
+  emergency_credit: { title: "Activate Emergency Credit Line", short: "Credit Line $10M" },
+  raise_deposit_rates: { title: "Raise Deposit Rates (+50bp)", short: "Raise Rates" },
+  sell_loan_portfolio: { title: "Sell Loan Portfolio ($8M)", short: "Sell Loans $8M" },
+};
 
 function App() {
   const [data, setData] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [hasFailed, setHasFailed] = useState(false);
   const [isCrisis, setIsCrisis] = useState(false);
+
+  // Notifications & Solutions state
+  const [notifications, setNotifications] = useState([]);
+  const [activeSolutions, setActiveSolutions] = useState([]);
+  const [successToasts, setSuccessToasts] = useState([]);
+  const [appliedSolutionIds, setAppliedSolutionIds] = useState(new Set());
+  const notifIdCounter = useRef(0);
 
   const resetSimulation = async () => {
     setIsRunning(false);
@@ -19,6 +35,10 @@ function App() {
       setData([]);
       setHasFailed(false);
       setIsCrisis(false);
+      setNotifications([]);
+      setActiveSolutions([]);
+      setSuccessToasts([]);
+      setAppliedSolutionIds(new Set());
     } catch (error) {
       console.error("Reset error:", error);
     }
@@ -33,6 +53,64 @@ function App() {
     }
   };
 
+  // ── Apply a solution ──
+  const applySolution = useCallback(async (solutionId, notifUid) => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/apply-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ solution_id: solutionId }),
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        setAppliedSolutionIds(prev => new Set([...prev, solutionId]));
+        setActiveSolutions(result.active_solutions || []);
+
+        // Show success toast
+        const toastId = `toast-${Date.now()}`;
+        const title = SOLUTION_CATALOG[solutionId]?.title || solutionId;
+        setSuccessToasts(prev => [...prev, { id: toastId, message: `Applied: ${title}` }]);
+        setTimeout(() => {
+          setSuccessToasts(prev => prev.map(t => t.id === toastId ? { ...t, exiting: true } : t));
+          setTimeout(() => setSuccessToasts(prev => prev.filter(t => t.id !== toastId)), 350);
+        }, 3000);
+
+        // Remove the solution from the notification that triggered it
+        setNotifications(prev => prev.map(n => {
+          if (n.uid === notifUid) {
+            return { ...n, solutions: n.solutions.filter(s => s !== solutionId) };
+          }
+          return n;
+        }));
+      }
+    } catch (error) {
+      console.error("Apply solution error:", error);
+    }
+  }, []);
+
+  // ── Dismiss a notification ──
+  const dismissNotification = useCallback((uid) => {
+    setNotifications(prev => prev.map(n =>
+      n.uid === uid ? { ...n, exiting: true } : n
+    ));
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.uid !== uid));
+    }, 350);
+  }, []);
+
+  // ── Auto-dismiss notifications after 30s ──
+  useEffect(() => {
+    const timers = notifications
+      .filter(n => !n.exiting && !n.timerSet)
+      .map(n => {
+        n.timerSet = true;
+        return setTimeout(() => dismissNotification(n.uid), 30000);
+      });
+    return () => timers.forEach(clearTimeout);
+  }, [notifications, dismissNotification]);
+
+  // ── Main simulation loop ──
   useEffect(() => {
     let interval = null;
     if (isRunning && !hasFailed) {
@@ -41,6 +119,32 @@ function App() {
           const response = await fetch('http://127.0.0.1:8000/api/step');
           const result = await response.json();
           setData(prev => [...prev, result.record]);
+
+          // Update active solutions
+          if (result.active_solutions) {
+            setActiveSolutions(result.active_solutions);
+          }
+
+          // Process alerts into notifications
+          if (result.alerts && result.alerts.length > 0) {
+            const newNotifs = result.alerts.map(alert => ({
+              ...alert,
+              uid: `notif-${notifIdCounter.current++}`,
+              exiting: false,
+              timerSet: false,
+              // Filter out already-applied solutions on the frontend side too
+              solutions: alert.solutions.filter(s => !appliedSolutionIds.has(s)),
+            })).filter(n => n.solutions.length > 0); // Only show if there are actionable solutions
+
+            if (newNotifs.length > 0) {
+              setNotifications(prev => {
+                // Cap at 5 notifications max
+                const combined = [...prev, ...newNotifs];
+                return combined.slice(-5);
+              });
+            }
+          }
+
           if (result.has_failed) {
             setHasFailed(true);
             setIsRunning(false);
@@ -52,9 +156,10 @@ function App() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, hasFailed]);
+  }, [isRunning, hasFailed, appliedSolutionIds]);
 
   const current = data.length > 0 ? data[data.length - 1] : null;
+  const hasCounterfactual = data.some(d => d.Counterfactual_LCR != null);
 
   const formatSurvival = (val) => {
     if (val == null) return '—';
@@ -69,6 +174,11 @@ function App() {
     if (w >= 1.0) return 'Medium';
     if (w > 0) return 'Low';
     return 'None';
+  };
+
+  const getSeverityIcon = (severity) => {
+    if (severity === 'critical') return <AlertTriangle size={18} />;
+    return <TrendingDown size={18} />;
   };
 
   return (
@@ -111,6 +221,25 @@ function App() {
         </div>
       ) : (
         <main>
+          {/* Active Solutions Bar */}
+          {activeSolutions.length > 0 && (
+            <div className="active-solutions-bar">
+              <div className="active-solutions-label">
+                <Shield size={14} />
+                Active Interventions
+              </div>
+              {activeSolutions.map((sol) => (
+                <div key={sol.id} className="active-solution-badge">
+                  <Zap size={12} />
+                  {sol.title}
+                  {sol.remaining > 0 && (
+                    <span className="days">{sol.remaining}d left</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* News Banner */}
           {current?.News_Headline && (
             <div className="metric-card" style={{
@@ -225,7 +354,14 @@ function App() {
             </div>
 
             <div className="chart-card">
-              <h2 className="chart-title">Regulatory Compliance (LCR & NSFR)</h2>
+              <h2 className="chart-title">
+                Regulatory Compliance (LCR & NSFR)
+                {hasCounterfactual && (
+                  <span style={{ fontSize: '0.7rem', color: '#ef4444', marginLeft: '0.75rem', fontWeight: 500, opacity: 0.8 }}>
+                    ● Dotted = Without Intervention
+                  </span>
+                )}
+              </h2>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -237,15 +373,41 @@ function App() {
                   <ReferenceLine yAxisId="left" y={100} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: "100% Min", fill: '#ef4444', fontSize: 11 }} />
                   <Line yAxisId="left" isAnimationActive={false} type="monotone" dataKey="LCR" stroke="#3b82f6" dot={false} strokeWidth={1.5} name="LCR %" />
                   <Line yAxisId="right" isAnimationActive={false} type="monotone" dataKey="NSFR" stroke="#14b8a6" dot={false} strokeWidth={1.5} name="NSFR %" />
+                  {/* Counterfactual LCR — dotted */}
+                  {hasCounterfactual && (
+                    <Line
+                      yAxisId="left"
+                      isAnimationActive={false}
+                      type="monotone"
+                      dataKey="Counterfactual_LCR"
+                      stroke="#ef4444"
+                      dot={false}
+                      strokeWidth={1.5}
+                      strokeDasharray="6 4"
+                      strokeOpacity={0.55}
+                      name="LCR % (No Intervention)"
+                      connectNulls
+                    />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
               <div className="analysis-box">
                 <strong>Interpretation:</strong> LCR measures 30-day survival capacity against the Basel III 100% minimum. NSFR measures structural funding stability. Crisis events rapidly deflate LCR as HQLA buffers are liquidated under fire-sale haircuts.
+                {hasCounterfactual && (
+                  <span style={{ color: '#ef4444' }}> The <strong>dotted red line</strong> shows the counterfactual LCR trajectory without any applied interventions.</span>
+                )}
               </div>
             </div>
 
             <div className="chart-card">
-              <h2 className="chart-title">Net Liquidity Position & HQLA Buffer</h2>
+              <h2 className="chart-title">
+                Net Liquidity Position & HQLA Buffer
+                {hasCounterfactual && (
+                  <span style={{ fontSize: '0.7rem', color: '#ef4444', marginLeft: '0.75rem', fontWeight: 500, opacity: 0.8 }}>
+                    ● Dotted = Without Intervention
+                  </span>
+                )}
+              </h2>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -256,10 +418,43 @@ function App() {
                   <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.6} label={{ value: "Insolvency", fill: '#ef4444', fontSize: 11 }} />
                   <Line isAnimationActive={false} type="monotone" dataKey="NLP" stroke="#ef4444" dot={false} strokeWidth={1.5} name="Net Liquidity" />
                   <Line isAnimationActive={false} type="monotone" dataKey="HQLA" stroke="#22c55e" dot={false} strokeWidth={1.5} name="HQLA Buffer" />
+                  {/* Counterfactual NLP — dotted */}
+                  {hasCounterfactual && (
+                    <Line
+                      isAnimationActive={false}
+                      type="monotone"
+                      dataKey="Counterfactual_NLP"
+                      stroke="#f97316"
+                      dot={false}
+                      strokeWidth={1.5}
+                      strokeDasharray="6 4"
+                      strokeOpacity={0.55}
+                      name="NLP (No Intervention)"
+                      connectNulls
+                    />
+                  )}
+                  {/* Counterfactual HQLA — dotted */}
+                  {hasCounterfactual && (
+                    <Line
+                      isAnimationActive={false}
+                      type="monotone"
+                      dataKey="Counterfactual_HQLA"
+                      stroke="#86efac"
+                      dot={false}
+                      strokeWidth={1.5}
+                      strokeDasharray="6 4"
+                      strokeOpacity={0.45}
+                      name="HQLA (No Intervention)"
+                      connectNulls
+                    />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
               <div className="analysis-box">
                 <strong>Interpretation:</strong> HQLA represents unencumbered liquid assets. As withdrawals outpace deposits, the bank liquidates HQLA to cover shortfalls. NLP crossing zero triggers insolvency.
+                {hasCounterfactual && (
+                  <span style={{ color: '#f97316' }}> <strong>Dotted lines</strong> show the counterfactual trajectory — what would have happened without your interventions.</span>
+                )}
               </div>
             </div>
 
@@ -295,6 +490,71 @@ function App() {
           </div>
         </main>
       )}
+
+      {/* ═══ Notification Toast Stack ═══ */}
+      <div className="notification-container">
+        {/* Success toasts */}
+        {successToasts.map((toast) => (
+          <div key={toast.id} className={`success-toast ${toast.exiting ? 'exiting' : ''}`}>
+            <div className="success-toast-icon">
+              <Check size={14} />
+            </div>
+            <div className="success-toast-text">{toast.message}</div>
+          </div>
+        ))}
+
+        {/* Alert notifications with solutions */}
+        {notifications.map((notif) => (
+          <div
+            key={notif.uid}
+            className={`notification-card ${notif.severity} ${notif.exiting ? 'exiting' : ''}`}
+            style={{ position: 'relative', overflow: 'hidden' }}
+          >
+            <div className="notification-header">
+              <div className={`notification-icon ${notif.severity}`}>
+                {getSeverityIcon(notif.severity)}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="notification-title">{notif.title}</div>
+              </div>
+              <button
+                className="dismiss-btn"
+                onClick={() => dismissNotification(notif.uid)}
+                style={{ padding: '0.25rem', border: 'none', marginLeft: 0 }}
+                title="Dismiss"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="notification-description">
+              {notif.description}
+            </div>
+
+            {notif.solutions && notif.solutions.length > 0 && (
+              <div className="notification-actions">
+                {notif.solutions.map((solId) => (
+                  <button
+                    key={solId}
+                    className="solution-btn"
+                    onClick={() => applySolution(solId, notif.uid)}
+                    disabled={appliedSolutionIds.has(solId)}
+                  >
+                    <Activity size={11} style={{ display: 'inline', verticalAlign: '-1px', marginRight: '3px' }} />
+                    {SOLUTION_CATALOG[solId]?.short || solId}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Timer bar */}
+            <div
+              className={`notification-timer ${notif.severity}`}
+              style={{ animationDuration: '30s' }}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
