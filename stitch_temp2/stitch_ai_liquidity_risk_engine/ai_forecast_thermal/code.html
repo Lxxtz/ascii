@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Risk Engine | AI Liquidity Forecast</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #e7e5e4;
+            font-family: 'Inter', sans-serif;
+        }
+        .thermal-gradient {
+            background: linear-gradient(90deg, #04c339 0%, #ffe484 50%, #ee7d77 100%);
+        }
+        .glass-overlay {
+            background-color: rgba(37, 38, 38, 0.7);
+            backdrop-filter: blur(24px);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ee7d77",
+                        "background": "#0e0e0e",
+                        "on-error-container": "#ff9993",
+                        "on-tertiary-container": "#594a00",
+                        "on-tertiary-fixed": "#433700",
+                        "surface-container-high": "#1f2020",
+                        "outline-variant": "#484848",
+                        "outline": "#767575",
+                        "primary": "#ffb3ad",
+                        "inverse-on-surface": "#565554",
+                        "secondary": "#04c339",
+                        "on-tertiary": "#635200",
+                        "surface-variant": "#252626",
+                        "secondary-fixed-dim": "#53f262",
+                        "on-secondary-fixed": "#004b10",
+                        "tertiary": "#ffe484",
+                        "secondary-dim": "#00b735",
+                        "surface-container-highest": "#252626",
+                        "primary-dim": "#ff9f98",
+                        "tertiary-fixed-dim": "#edc600",
+                        "on-surface": "#e7e5e4",
+                        "secondary-fixed": "#70ff76",
+                        "tertiary-dim": "#edc600",
+                        "on-primary-fixed": "#850010",
+                        "on-primary-fixed-variant": "#b51621",
+                        "surface-bright": "#2c2c2c",
+                        "on-background": "#e7e5e4",
+                        "surface-tint": "#ffb3ad",
+                        "on-surface-variant": "#acabaa",
+                        "primary-fixed-dim": "#ffc7c2",
+                        "on-tertiary-fixed-variant": "#645300",
+                        "error-dim": "#bb5551",
+                        "inverse-surface": "#fcf8f8",
+                        "on-primary": "#860011",
+                        "secondary-container": "#00460e",
+                        "surface-dim": "#0e0e0e",
+                        "on-secondary-fixed-variant": "#006b1b",
+                        "surface-container-lowest": "#000000",
+                        "on-error": "#490106",
+                        "on-secondary-container": "#38db4f",
+                        "on-primary-container": "#ffc1bc",
+                        "surface": "#0e0e0e",
+                        "inverse-primary": "#ba1b24",
+                        "tertiary-container": "#fdd404",
+                        "surface-container": "#191a1a",
+                        "error-container": "#7f2927",
+                        "surface-container-low": "#131313",
+                        "primary-fixed": "#ffdad7",
+                        "on-secondary": "#003208",
+                        "tertiary-fixed": "#fdd404",
+                        "primary-container": "#930013"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased no-scrollbar pb-24 pt-16">
+<!-- TopAppBar Execution -->
+<header class="fixed top-0 w-full z-50 bg-[#0e0e0e] flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ffb3ad]">security</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#ffb3ad]">RISK ENGINE</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-lg font-black tracking-[-0.02em] text-[#e7e5e4]">LIQUIDITY FORECAST</span>
+<button class="hover:bg-[#1f2020] transition-colors p-2 rounded active:opacity-80">
+<span class="material-symbols-outlined text-[#767575]">settings</span>
+</button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 py-8">
+<!-- Dashboard Hero: Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Main Forecast Visualization -->
+<div class="md:col-span-8 bg-surface-container-low p-1 rounded-sm">
+<div class="bg-surface p-6 h-full border border-outline-variant/10">
+<div class="flex justify-between items-start mb-8">
+<div>
+<p class="text-outline text-xs uppercase tracking-widest font-semibold mb-1">Projected Net Liquidity (T+30)</p>
+<h2 class="text-5xl font-black text-on-surface tracking-tighter">$4.28B</h2>
+</div>
+<div class="flex gap-2">
+<span class="px-2 py-1 bg-secondary-container/20 text-secondary text-[10px] font-bold uppercase tracking-tighter rounded-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> STABLE
+                            </span>
+</div>
+</div>
+<!-- Thermal Heatmapped Chart Placeholder -->
+<div class="relative w-full h-80 bg-surface-container-lowest overflow-hidden group">
+<!-- Simulated Chart Grid -->
+<div class="absolute inset-0 grid grid-cols-6 grid-rows-4 opacity-10">
+<div class="border-r border-b border-outline"></div>
+<div class="border-r border-b border-outline"></div>
+<div class="border-r border-b border-outline"></div>
+<div class="border-r border-b border-outline"></div>
+<div class="border-r border-b border-outline"></div>
+<div class="border-r border-b border-outline"></div>
+<!-- ... more rows ... -->
+</div>
+<!-- Thermal Path Visualization -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 400">
+<defs>
+<lineargradient id="thermal-line" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" stop-color="#04c339"></stop>
+<stop offset="40%" stop-color="#04c339"></stop>
+<stop offset="70%" stop-color="#fdd404"></stop>
+<stop offset="100%" stop-color="#ee7d77"></stop>
+</lineargradient>
+</defs>
+<path d="M0,300 L150,280 L300,310 L450,200 L600,240 L750,150 L900,180 L1000,100" fill="none" stroke="url(#thermal-line)" stroke-linecap="round" stroke-width="4"></path>
+<!-- Risk Heat Zones -->
+<rect fill="url(#heat-grad)" height="300" opacity="0.15" width="300" x="700" y="50"></rect>
+<defs>
+<radialgradient id="heat-grad">
+<stop offset="0%" stop-color="#ee7d77"></stop>
+<stop offset="100%" stop-color="transparent"></stop>
+</radialgradient>
+</defs>
+</svg>
+<!-- Tooltip Overlay (Persistent thermal signal) -->
+<div class="absolute top-1/4 right-1/4 glass-overlay p-3 border-l-2 border-primary">
+<p class="text-[10px] text-primary uppercase font-bold tracking-widest">Volatility Spike</p>
+<p class="text-lg font-bold text-on-surface">σ 0.84</p>
+</div>
+</div>
+<div class="mt-6 flex justify-between items-center text-[10px] text-outline font-medium tracking-widest uppercase">
+<span>OCT 24</span>
+<span>NOV 24 (PREDICTED)</span>
+<span>DEC 24</span>
+</div>
+</div>
+</div>
+<!-- Model Integrity & Metrics -->
+<div class="md:col-span-4 flex flex-col gap-6">
+<!-- LSTM Model Integrity -->
+<div class="bg-surface-container p-6 border-l-2 border-secondary h-1/2">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs uppercase tracking-widest font-bold text-outline">LSTM Model Integrity</span>
+<span class="material-symbols-outlined text-secondary text-sm">verified</span>
+</div>
+<div class="flex items-baseline gap-2 mb-6">
+<span class="text-4xl font-black text-on-surface">92.4</span>
+<span class="text-outline text-sm">%</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-secondary h-full w-[92%]"></div>
+</div>
+<p class="mt-4 text-[11px] text-on-surface-variant leading-relaxed">
+                        Multivariate sequence analysis confirms high confidence in 30-day projection based on historical outflow patterns and market sentiment data.
+                    </p>
+</div>
+<!-- Interest Rate Impact -->
+<div class="bg-surface-container p-6 border-l-2 border-error h-1/2">
+<div class="flex items-center justify-between mb-4">
+<span class="text-xs uppercase tracking-widest font-bold text-outline">Interest Rate Stress</span>
+<div class="w-2 h-2 rounded-full bg-error animate-pulse"></div>
+</div>
+<div class="flex items-baseline gap-2 mb-2">
+<span class="text-3xl font-black text-on-surface">-14.2</span>
+<span class="text-error text-xs font-bold uppercase tracking-widest">BPS</span>
+</div>
+<p class="text-[11px] text-error mb-6 font-bold uppercase tracking-tight">CRITICAL PRESSURE DETECTED</p>
+<div class="space-y-3">
+<div class="flex justify-between text-[10px] uppercase font-semibold">
+<span class="text-outline">Yield Spread Sensitivity</span>
+<span class="text-on-surface">High</span>
+</div>
+<div class="flex justify-between text-[10px] uppercase font-semibold">
+<span class="text-outline">Duration Risk</span>
+<span class="text-on-surface">4.2 YR</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Metrics Row -->
+<div class="md:col-span-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="bg-surface-container-low p-5">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest mb-2">Deposit Beta</p>
+<div class="text-2xl font-bold">0.42</div>
+<div class="mt-2 text-[10px] text-secondary font-bold">+2.1% STABILITY</div>
+</div>
+<div class="bg-surface-container-low p-5">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest mb-2">HQLA Buffer</p>
+<div class="text-2xl font-bold">$1.12B</div>
+<div class="mt-2 text-[10px] text-outline font-bold">94% TARGET</div>
+</div>
+<div class="bg-surface-container-low p-5 border-b-2 border-primary">
+<p class="text-[10px] text-primary uppercase font-bold tracking-widest mb-2">Liquidity Coverage</p>
+<div class="text-2xl font-bold">142%</div>
+<div class="mt-2 text-[10px] text-error-dim font-bold">-0.8% DECAY</div>
+</div>
+<div class="bg-surface-container-low p-5">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest mb-2">Simulation Run</p>
+<div class="text-2xl font-bold text-on-surface">#9402</div>
+<div class="mt-2 text-[10px] text-outline font-bold">COMPLETED 2M AGO</div>
+</div>
+</div>
+<!-- Visual Heat Map Visualization -->
+<div class="md:col-span-12 bg-surface-container-high p-8 rounded-sm">
+<div class="flex flex-col md:flex-row gap-8 items-center">
+<div class="w-full md:w-1/3">
+<h3 class="text-sm font-bold uppercase tracking-widest mb-4">Risk Surface Mapping</h3>
+<p class="text-xs text-on-surface-variant leading-loose mb-6">
+                            Spatial representation of liquidity pressure across multiple asset classes. Thermal saturation indicates areas where drawdown probability exceeds the 95th percentile.
+                        </p>
+<button class="bg-primary text-on-primary text-[11px] font-black uppercase tracking-widest py-3 px-6 rounded-sm active:scale-95 transition-transform">
+                            EXECUTE STRESS TEST
+                        </button>
+</div>
+<div class="w-full md:w-2/3 h-64 bg-surface-container-lowest relative overflow-hidden flex items-center justify-center">
+<img class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-screen" data-alt="abstract topological heatmap visualization with deep red and neon green glow on black background showing 3d data mountains" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADl0C_G5T8MGO3VkH2PmH1yPJ8kb_S-UXz_9iwIqErWyCn5DO3Yqqx_nF7a-RdN-m4j7An7XovhBUqx3sLsuaHEE575OjJQCKWI7M_OINj3KUi2sKDDAjEBE7nxPazi9YmYGO_3VysLkYkU2vW6NR3t90jFzknghN51GXosTgot3zMeDPyTW9VUxji6XX60c2hRmaRt_tpdqUz9iyZSPjFqD1ZaJ5XnXtBPYK7SK86Mpg5-j3BhcQKFQeAXJKKzJIwM1qGXO48J0WB"/>
+<div class="relative z-10 glass-overlay p-4 border border-outline-variant/20 flex gap-4">
+<div class="text-center">
+<p class="text-[9px] text-outline uppercase mb-1">Asset X</p>
+<div class="w-12 h-1 bg-error"></div>
+</div>
+<div class="text-center">
+<p class="text-[9px] text-outline uppercase mb-1">Asset Y</p>
+<div class="w-12 h-1 bg-secondary"></div>
+</div>
+<div class="text-center">
+<p class="text-[9px] text-outline uppercase mb-1">Asset Z</p>
+<div class="w-12 h-1 bg-tertiary"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Execution -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-[#484848]/15 shadow-2xl shadow-black flex justify-around items-center h-20 pb-safe w-full">
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-all duration-300 active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#ffb3ad] transition-all duration-300 active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined mb-1">analytics</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold">Simulation</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-all duration-300 active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined mb-1">gavel</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold">Regulatory</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-all duration-300 active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined mb-1">notification_important</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold">Alerts</span>
+</div>
+</nav>
+</body></html>

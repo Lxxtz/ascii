@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RISK ENGINE | Executive Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ee7d77",
+                        "background": "#0e0e0e",
+                        "on-error-container": "#ff9993",
+                        "on-tertiary-container": "#594a00",
+                        "on-tertiary-fixed": "#433700",
+                        "surface-container-high": "#1f2020",
+                        "outline-variant": "#484848",
+                        "outline": "#767575",
+                        "primary": "#ffb3ad",
+                        "inverse-on-surface": "#565554",
+                        "secondary": "#04c339",
+                        "on-tertiary": "#635200",
+                        "surface-variant": "#252626",
+                        "secondary-fixed-dim": "#53f262",
+                        "on-secondary-fixed": "#004b10",
+                        "tertiary": "#ffe484",
+                        "secondary-dim": "#00b735",
+                        "surface-container-highest": "#252626",
+                        "primary-dim": "#ff9f98",
+                        "tertiary-fixed-dim": "#edc600",
+                        "on-surface": "#e7e5e4",
+                        "secondary-fixed": "#70ff76",
+                        "tertiary-dim": "#edc600",
+                        "on-primary-fixed": "#850010",
+                        "on-primary-fixed-variant": "#b51621",
+                        "surface-bright": "#2c2c2c",
+                        "on-background": "#e7e5e4",
+                        "surface-tint": "#ffb3ad",
+                        "on-surface-variant": "#acabaa",
+                        "primary-fixed-dim": "#ffc7c2",
+                        "on-tertiary-fixed-variant": "#645300",
+                        "error-dim": "#bb5551",
+                        "inverse-surface": "#fcf8f8",
+                        "on-primary": "#860011",
+                        "secondary-container": "#00460e",
+                        "surface-dim": "#0e0e0e",
+                        "on-secondary-fixed-variant": "#006b1b",
+                        "surface-container-lowest": "#000000",
+                        "on-error": "#490106",
+                        "on-secondary-container": "#38db4f",
+                        "on-primary-container": "#ffc1bc",
+                        "surface": "#0e0e0e",
+                        "inverse-primary": "#ba1b24",
+                        "tertiary-container": "#fdd404",
+                        "surface-container": "#191a1a",
+                        "error-container": "#7f2927",
+                        "surface-container-low": "#131313",
+                        "primary-fixed": "#ffdad7",
+                        "on-secondary": "#003208",
+                        "tertiary-fixed": "#fdd404",
+                        "primary-container": "#930013"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .thermal-gradient-red {
+            background: linear-gradient(180deg, #ffb3ad 0%, #930013 100%);
+        }
+        .thermal-gradient-green {
+            background: linear-gradient(180deg, #04c339 0%, #00460e 100%);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0e0e0e;
+            color: #e7e5e4;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased overflow-x-hidden pb-24 pt-16">
+<!-- TopAppBar -->
+<header class="bg-[#0e0e0e] fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ffb3ad]">security</span>
+<span class="text-lg font-black tracking-[-0.02em] text-[#e7e5e4]">RISK ENGINE</span>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-8">
+<a class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#e7e5e4]" href="#">Dashboard</a>
+<a class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors px-2 py-1 rounded" href="#">Simulation</a>
+<a class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors px-2 py-1 rounded" href="#">Regulatory</a>
+</nav>
+<span class="material-symbols-outlined text-[#ffb3ad] active:opacity-80 cursor-pointer">settings</span>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-6 py-8">
+<!-- Hero Section: Survival Horizon -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+<div class="lg:col-span-8 bg-surface-container-low p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+<div>
+<span class="text-outline uppercase text-[10px] tracking-[0.2em] font-bold mb-2 block">System Liquidity State</span>
+<h1 class="text-[84px] leading-none font-black tracking-tighter text-on-surface">42 Days</h1>
+<p class="text-on-surface-variant max-w-md mt-4">Survival Horizon: Projected depletion of HQLA under stress scenario Sigma-9. Immediate intervention thresholds remain active.</p>
+</div>
+<div class="flex items-center gap-4 mt-8">
+<button class="bg-primary px-6 py-3 text-on-primary font-bold uppercase text-xs tracking-widest hover:opacity-90 transition-opacity">Execute Mitigation</button>
+<button class="text-on-surface font-bold uppercase text-xs tracking-widest hover:bg-surface-container-high px-6 py-3 transition-colors">Detailed Stress Test</button>
+</div>
+<!-- Background visual element -->
+<div class="absolute right-0 bottom-0 opacity-10 pointer-events-none">
+<span class="material-symbols-outlined text-[300px]" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+</div>
+<div class="lg:col-span-4 grid grid-cols-1 gap-6">
+<!-- Ratio 1: LCR -->
+<div class="bg-surface-container p-6 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<span class="text-outline uppercase text-[10px] tracking-[0.1em] font-bold">LCR</span>
+<div class="text-3xl font-bold mt-1">108.4%</div>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-surface-container-highest flex items-center justify-center">
+<div class="w-full h-full rounded-full border-t-4 border-primary rotate-[120deg]"></div>
+</div>
+</div>
+<div class="mt-6">
+<div class="w-full h-1 bg-surface-container-highest">
+<div class="h-full bg-primary w-[65%]"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-bold text-outline">
+<span>REGULATORY MIN: 100%</span>
+<span class="text-primary">WARNING</span>
+</div>
+</div>
+</div>
+<!-- Ratio 2: NSFR -->
+<div class="bg-surface-container p-6 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<span class="text-outline uppercase text-[10px] tracking-[0.1em] font-bold">NSFR</span>
+<div class="text-3xl font-bold mt-1">112.1%</div>
+</div>
+<div class="w-12 h-12 rounded-full border-4 border-surface-container-highest flex items-center justify-center">
+<div class="w-full h-full rounded-full border-t-4 border-secondary rotate-[200deg]"></div>
+</div>
+</div>
+<div class="mt-6">
+<div class="w-full h-1 bg-surface-container-highest">
+<div class="h-full bg-secondary w-[82%]"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-bold text-outline">
+<span>REGULATORY MIN: 100%</span>
+<span class="text-secondary">STABLE</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Grid: Analytics & Alerts -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Heatmap / Forecast Chart -->
+<div class="lg:col-span-2 bg-surface-container p-6 min-h-[400px] flex flex-col">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-xs font-black uppercase tracking-widest text-on-surface">Net Cash Flow Forecast (7D)</h3>
+<div class="flex gap-4">
+<span class="flex items-center gap-1 text-[10px] text-outline font-bold"><span class="w-2 h-2 rounded-full bg-secondary"></span> INFLOW</span>
+<span class="flex items-center gap-1 text-[10px] text-outline font-bold"><span class="w-2 h-2 rounded-full bg-error"></span> OUTFLOW</span>
+</div>
+</div>
+<div class="flex-grow flex items-end gap-2 pb-4">
+<!-- Day 1 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green opacity-40 h-[40%]"></div>
+<div class="w-full thermal-gradient-red h-[30%]"></div>
+<span class="text-[9px] text-outline mt-2">MON</span>
+</div>
+<!-- Day 2 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green h-[60%]"></div>
+<div class="w-full thermal-gradient-red opacity-50 h-[20%]"></div>
+<span class="text-[9px] text-outline mt-2 text-on-surface font-bold">TUE</span>
+</div>
+<!-- Day 3 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green opacity-30 h-[20%]"></div>
+<div class="w-full thermal-gradient-red h-[80%]"></div>
+<span class="text-[9px] text-outline mt-2">WED</span>
+</div>
+<!-- Day 4 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green h-[45%]"></div>
+<div class="w-full thermal-gradient-red h-[55%]"></div>
+<span class="text-[9px] text-outline mt-2">THU</span>
+</div>
+<!-- Day 5 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green h-[70%]"></div>
+<div class="w-full thermal-gradient-red opacity-20 h-[10%]"></div>
+<span class="text-[9px] text-outline mt-2">FRI</span>
+</div>
+<!-- Day 6 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green opacity-20 h-[15%]"></div>
+<div class="w-full thermal-gradient-red h-[40%]"></div>
+<span class="text-[9px] text-outline mt-2">SAT</span>
+</div>
+<!-- Day 7 -->
+<div class="flex-grow flex flex-col items-center gap-1">
+<div class="w-full thermal-gradient-green opacity-10 h-[5%]"></div>
+<div class="w-full thermal-gradient-red h-[35%]"></div>
+<span class="text-[9px] text-outline mt-2">SUN</span>
+</div>
+</div>
+</div>
+<!-- Live Risk Alerts -->
+<div class="bg-surface-container-high p-6">
+<div class="flex items-center gap-2 mb-6">
+<span class="w-2 h-2 bg-error rounded-full animate-pulse"></span>
+<h3 class="text-xs font-black uppercase tracking-widest text-on-surface">Live Risk Signals</h3>
+</div>
+<div class="space-y-6">
+<!-- Critical Alert -->
+<div class="bg-error-container/20 p-4 border-l-2 border-error">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-black uppercase tracking-tighter text-error">CRITICAL BREACH</span>
+<span class="text-[9px] text-outline font-bold">14:02 UTC</span>
+</div>
+<h4 class="text-sm font-bold text-on-surface leading-tight mb-1">Concentration Limit Breach</h4>
+<p class="text-[11px] text-on-surface-variant">Asset Class: High Yield Corporate. Deviation: +14.2% over internal cap.</p>
+<div class="mt-3 flex gap-2">
+<button class="text-[9px] font-bold uppercase tracking-widest text-on-error-container hover:underline">Mitigate</button>
+<button class="text-[9px] font-bold uppercase tracking-widest text-outline hover:text-on-surface">Dismiss</button>
+</div>
+</div>
+<!-- Warning Alert -->
+<div class="p-4 bg-surface-container-highest">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-black uppercase tracking-tighter text-tertiary">THRESHOLD WARNING</span>
+<span class="text-[9px] text-outline font-bold">12:48 UTC</span>
+</div>
+<h4 class="text-sm font-bold text-on-surface leading-tight mb-1">VaR 99% Approaching Limit</h4>
+<p class="text-[11px] text-on-surface-variant">Intraday volatility spike in JPY/USD pairs. Monitoring required.</p>
+</div>
+<!-- Info Alert -->
+<div class="p-4 border-l-2 border-secondary/30">
+<div class="flex justify-between items-start mb-2">
+<span class="text-[10px] font-black uppercase tracking-tighter text-secondary">SETTLED</span>
+<span class="text-[9px] text-outline font-bold">09:15 UTC</span>
+</div>
+<h4 class="text-sm font-bold text-on-surface leading-tight mb-1">EBA Reporting Sync Complete</h4>
+<p class="text-[11px] text-on-surface-variant">Regulatory submission for Q3 finalized and encrypted.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Secondary Insights -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+<div class="bg-surface-container p-6">
+<span class="text-[10px] font-bold text-outline uppercase tracking-widest mb-2 block">Counterparty Risk</span>
+<div class="text-xl font-bold">Low Tension</div>
+<div class="h-1 bg-surface-container-highest mt-4">
+<div class="h-full bg-secondary w-1/4"></div>
+</div>
+</div>
+<div class="bg-surface-container p-6">
+<span class="text-[10px] font-bold text-outline uppercase tracking-widest mb-2 block">Market Volatility</span>
+<div class="text-xl font-bold text-primary">High Spike</div>
+<div class="h-1 bg-surface-container-highest mt-4">
+<div class="h-full bg-primary w-3/4"></div>
+</div>
+</div>
+<div class="bg-surface-container p-6">
+<span class="text-[10px] font-bold text-outline uppercase tracking-widest mb-2 block">Operational Status</span>
+<div class="text-xl font-bold">99.98%</div>
+<div class="h-1 bg-surface-container-highest mt-4">
+<div class="h-full bg-secondary w-full"></div>
+</div>
+</div>
+<div class="bg-surface-container p-6 relative overflow-hidden">
+<span class="text-[10px] font-bold text-outline uppercase tracking-widest mb-2 block">Next Stress Cycle</span>
+<div class="text-xl font-bold">04:00:00</div>
+<div class="mt-4 text-[10px] text-outline font-bold italic">SIMULATION SCHEDULED</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-[#484848]/15 flex justify-around items-center h-20 pb-safe md:hidden">
+<button class="flex flex-col items-center justify-center text-[#ffb3ad] transition-all duration-300 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Dashboard</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Simulation</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">gavel</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Regulatory</span>
+</button>
+<button class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined">notification_important</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Alerts</span>
+</button>
+</nav>
+</body></html>
