@@ -5,6 +5,7 @@ import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid, Legend, ComposedChart
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import {
   Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap,
   TrendingDown, Activity, Bell, ChevronRight, ChevronLeft, Building, Droplet, BarChart2, Cpu, ChevronDown,
@@ -154,12 +155,36 @@ export default function Dashboard() {
       .then(r => r.json())
       .then(d => setSolutionCatalog(d.solutions || {}))
       .catch(console.error);
-  }, []);
+    
+    // ── Fetch existing simulation state ──
+    const fetchInitialState = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await fetch(apiUrl('/api/get-current-simulation'), {
+          headers: { 'X-User-ID': user.id.toString() }
+        });
+        const payload = await res.json();
+        if (payload.history?.length > 0) {
+          setData(payload.history);
+          setSimData(payload.history);
+          setIsCrisis(payload.is_crisis);
+          setHasFailed(payload.has_failed);
+          setActiveSolutions(payload.active_solutions || []);
+        }
+      } catch (err) {
+        console.error('[Dashboard] initial state fetch error:', err);
+      }
+    };
+    fetchInitialState();
+  }, [user?.id]);
 
   // ── Step engine ──
   const stepEngine = async () => {
+    if (!user?.id) return;
     try {
-      const res = await fetch(apiUrl('/api/step'));
+      const res = await fetch(apiUrl('/api/step'), {
+        headers: { 'X-User-ID': user.id.toString() }
+      });
       const payload = await res.json();
 
       setData(prev => {
@@ -184,8 +209,6 @@ export default function Dashboard() {
         }));
         setSystemAlerts(prev => [...newAlerts, ...prev].slice(0, 30));
         setUnreadCount(prev => prev + newAlerts.length);
-
-
       }
     } catch (e) {
       console.error('[Engine] step error:', e);
@@ -204,50 +227,68 @@ export default function Dashboard() {
 
   // ── Auto Report on Insolvency ──
   useEffect(() => {
-    if (hasFailed && !reportSentRef.current && contentRef.current) {
+    if (hasFailed && !reportSentRef.current) {
       reportSentRef.current = true;
-      // Wait a moment for UI to visually reflect the "DEAD/INSOLVENT" state
-      setTimeout(() => {
-        html2canvas(contentRef.current, { backgroundColor: '#0a0a0a', scale: 1.5, windowHeight: contentRef.current.scrollHeight })
-          .then(canvas => {
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const pdf = new jsPDF('p', 'pt', 'a4');
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            let heightLeft = pdfHeight;
-            let position = 0;
-            const pageHeight = pdf.internal.pageSize.getHeight();
-
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-              position = heightLeft - pdfHeight;
-              pdf.addPage();
-              pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-              heightLeft -= pageHeight;
-            }
-
-            const pdfBase64 = pdf.output('datauristring');
-            fetch(apiUrl('/api/send-insolvency-report'), {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image_data: pdfBase64 }),
-            }).catch(console.error);
-          });
-      }, 1500);
+      const generateForensicReport = () => {
+        const historySlice = data.slice(-30);
+        const rows = [];
+        rows.push(['FluxShield — OFFICIAL FORENSIC INSOLVENCY REPORT']);
+        rows.push(['Classification', 'STRICTLY CONFIDENTIAL', '', 'System', 'Proactive Risk Engine', '', 'Generated', new Date().toISOString()]);
+        rows.push([]);
+        const header = [
+          'Day #', 'Date', 'Daily Deposits (USD)', 'Daily Withdrawals (USD)', 'Net Cashflow (USD)',
+          'Loans Issued (USD)', 'Loans Repaid (USD)', 'HQLA Buffer (USD)', 'Net Liquidity (USD)',
+          'LCR (%)', 'NSFR (%)', 'LDR (%)', 'LSTM Survival (days)', 'Status'
+        ];
+        rows.push(header);
+        historySlice.forEach((d, idx) => {
+          rows.push([
+            idx + 1,
+            d.Date,
+            d.Daily_Deposits,
+            d.Daily_Withdrawals,
+            (d.Daily_Deposits + d.Daily_Loans_Repaid) - (d.Daily_Withdrawals + d.Daily_Loans_Given),
+            d.Daily_Loans_Given,
+            d.Daily_Loans_Repaid,
+            d.HQLA,
+            d.NLP,
+            d.LCR,
+            d.NSFR,
+            d.LDR,
+            d.LSTM_Survival,
+            d.has_failed ? 'INSOLVENT' : d.is_crisis ? 'CRISIS' : 'NORMAL'
+          ]);
+        });
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 7 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 20 },
+          { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 20 },
+          { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 15 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws, 'Forensic History');
+        const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+        fetch(apiUrl('/api/send-insolvency-report'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_data: wbout }),
+        }).catch(console.error);
+      };
+      generateForensicReport();
     }
-
-    // Reset block if simulation gets reset
     if (!hasFailed && data.length === 0) {
       reportSentRef.current = false;
     }
-  }, [hasFailed, data.length]);
+  }, [hasFailed, data.length, data]);
 
   // ── Controls ──
   const startSim = () => {
+    if (!user?.id) return;
     if (data.length === 0) {
-      fetch(apiUrl('/api/start'), { method: 'POST' })
+      fetch(apiUrl('/api/start'), { 
+        method: 'POST',
+        headers: { 'X-User-ID': user.id.toString() }
+      })
         .then(() => setIsRunning(true))
         .catch(console.error);
     } else {
@@ -256,17 +297,30 @@ export default function Dashboard() {
   };
   const pauseSim = () => setIsRunning(false);
   const resetSim = async () => {
-    await fetch(apiUrl('/api/start'), { method: 'POST' }).catch(console.error);
-    setData([]); setSystemAlerts([]); setHasFailed(false); setIsCrisis(false); setIsRunning(false);
+    if (!user?.id) return;
+    await fetch(apiUrl('/api/start'), { 
+      method: 'POST',
+      headers: { 'X-User-ID': user.id.toString() }
+    }).catch(console.error);
+    setData([]); setSimData([]); setSystemAlerts([]); setHasFailed(false); setIsCrisis(false); setIsRunning(false);
   };
-  const triggerCrisis = async () => {
-    await fetch(apiUrl('/api/trigger-crisis'), { method: 'POST' }).catch(console.error);
+  const toggleCrisis = async () => {
+    if (!user?.id) return;
+    await fetch(apiUrl('/api/trigger-crisis'), { 
+      method: 'POST',
+      headers: { 'X-User-ID': user.id.toString() }
+    }).catch(console.error);
     stepEngine();
   };
-  const applySolution = async (id) => {
-    await fetch(apiUrl('/api/apply-solution'), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ solution_id: id }),
+  const applySolution = (sid) => {
+    if (!user?.id) return;
+    fetch(apiUrl('/api/apply-solution'), {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-User-ID': user.id.toString()
+      },
+      body: JSON.stringify({ solution_id: sid }),
     }).catch(console.error);
     stepEngine();
   };
@@ -333,34 +387,32 @@ export default function Dashboard() {
           <div className="h-4 w-px bg-tactical-border/50"></div>
           <nav className="flex gap-4">
             <button className="text-[10px] uppercase font-bold text-white transition-colors border-b-2 border-white pb-1">Live Dashboard</button>
-            {user?.role !== 'viewer' && (
-              <button onClick={() => navigate('/reports')} className="text-[10px] uppercase font-bold text-tactical-dim hover:text-white transition-colors">Reports & Ledgers</button>
-            )}
+            <button onClick={() => navigate('/reports')} className="text-[10px] uppercase font-bold text-tactical-dim hover:text-white transition-colors">Reports & Ledgers</button>
           </nav>
         </div>
 
         <div className="flex items-center gap-3">
-          {user?.role === 'executive' && (
-            <>
-              <button onClick={isRunning ? pauseSim : startSim} disabled={hasFailed}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest transition-all border ${hasFailed ? 'border-tactical-red-bright/30 text-tactical-red-bright/50 cursor-not-allowed' :
-                    isRunning ? 'border-tactical-green text-tactical-green hover:bg-tactical-green hover:text-black shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
-                      'border-white text-white bg-white/10 hover:bg-white hover:text-black'
-                  }`}>
-                {isRunning ? <Pause size={14} /> : <Play size={14} />}
-                {hasFailed ? 'FAILED' : isRunning ? 'PAUSE' : 'START'}
-              </button>
+          {/* Simulation Controls: START/PAUSE + RESET (All roles) */}
+          <button onClick={isRunning ? pauseSim : startSim} disabled={hasFailed}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest transition-all border ${hasFailed ? 'border-tactical-red-bright/30 text-tactical-red-bright/50 cursor-not-allowed' :
+                isRunning ? 'border-tactical-green text-tactical-green hover:bg-tactical-green hover:text-black shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
+                  'border-white text-white bg-white/10 hover:bg-white hover:text-black'
+              }`}>
+            {isRunning ? <Pause size={14} /> : <Play size={14} />}
+            {hasFailed ? 'FAILED' : isRunning ? 'PAUSE' : 'START'}
+          </button>
 
-              <button onClick={resetSim}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-border text-tactical-dim hover:text-white hover:border-white transition-all">
-                <RefreshCw size={14} /> RESET
-              </button>
+          <button onClick={resetSim}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-border text-tactical-dim hover:text-white hover:border-white transition-all">
+            <RefreshCw size={14} /> RESET
+          </button>
 
-              <button onClick={triggerCrisis}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-red-bright/40 text-tactical-red-bright bg-tactical-red-bright/5 hover:bg-tactical-red-bright hover:text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.4)] transition-all">
-                <AlertTriangle size={14} /> TRIGGER CRISIS
-              </button>
-            </>
+          {/* Critical Stress Controls (Executive & Analyst only) */}
+          {(user?.role === 'executive' || user?.role === 'analyst') && (
+            <button onClick={toggleCrisis}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-sans font-bold uppercase tracking-widest border border-tactical-red-bright/40 text-tactical-red-bright bg-tactical-red-bright/5 hover:bg-tactical-red-bright hover:text-white hover:shadow-[0_0_15px_rgba(239,51,51,0.4)] transition-all">
+              <AlertTriangle size={14} /> TRIGGER CRISIS
+            </button>
           )}
 
           <div className="relative">

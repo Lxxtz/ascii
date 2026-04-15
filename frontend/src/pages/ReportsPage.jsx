@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Calendar, Download, LogOut, Activity, Search, ShieldCheck } from 'lucide-react';
+import { FileText, Calendar, Download, LogOut, Activity, Search, ShieldCheck, Play, Pause, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -115,24 +115,13 @@ function generateDailyData(startStr, endStr) {
   return days;
 }
 
+const apiUrl = (path) => `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${path}`;
+
 export default function ReportsPage() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
-  // ── Redirect viewer away ──
   const role = user?.role?.toLowerCase() || 'executive';
-  if (role === 'viewer') {
-    return (
-      <div className="flex flex-col w-full h-screen bg-tactical-bg text-tactical-text font-mono items-center justify-center gap-4">
-        <ShieldCheck size={48} className="text-tactical-red-bright" />
-        <h1 className="text-xl font-sans font-black text-white uppercase">Access Denied</h1>
-        <p className="text-sm text-[#777]">Reports & Ledgers are restricted for Viewer accounts.</p>
-        <button onClick={() => navigate('/dashboard')} className="mt-4 px-6 py-2 border border-tactical-border text-tactical-dim text-xs uppercase font-bold hover:text-white hover:border-white transition-all">
-          Return to Dashboard
-        </button>
-      </div>
-    );
-  }
 
   const [startDate, setStartDate] = useState('2026-03-01');
   const [endDate, setEndDate] = useState('2026-04-30');
@@ -147,6 +136,23 @@ export default function ReportsPage() {
     if (absVal >= 1e6) return `${isNeg ? '-' : ''}$${(absVal / 1e6).toFixed(2)}M`;
     if (absVal >= 1e3) return `${isNeg ? '-' : ''}$${(absVal / 1e3).toFixed(1)}K`;
     return `${isNeg ? '-' : ''}$${absVal.toFixed(2)}`;
+  };
+  // ── Engine Controls ──
+  const [isRunning, setIsRunning] = useState(false);
+  const startSim = () => setIsRunning(true);
+  const pauseSim = () => setIsRunning(false);
+  
+  const resetSim = async () => {
+    if (!user?.id) return;
+    try {
+      await fetch(apiUrl('/api/start'), { 
+        method: 'POST',
+        headers: { 'X-User-ID': user.id.toString() }
+      });
+      setIsRunning(false);
+    } catch (e) {
+      console.error('[Reports] reset error:', e);
+    }
   };
 
   // ── Generate daily data for the full date range ──
@@ -252,6 +258,23 @@ export default function ReportsPage() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          {/* Simulation Controls (Added for Viewer/Analyst/Executive) */}
+          <div className="flex items-center gap-2">
+            <button onClick={isRunning ? pauseSim : startSim}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-sans font-bold uppercase tracking-widest transition-all border ${
+                isRunning ? 'border-tactical-green text-tactical-green' : 'border-white text-white bg-white/5'
+              }`}>
+              {isRunning ? <Pause size={12} /> : <Play size={12} />}
+              {isRunning ? 'RUNNING' : 'START SIM'}
+            </button>
+            <button onClick={resetSim}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-sans font-bold uppercase tracking-widest border border-tactical-border text-tactical-dim hover:text-white transition-all">
+              <RefreshCw size={12} /> RESET
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-tactical-border/50 mx-1"></div>
+
           <div className="flex items-center gap-2 text-[10px] font-bold text-tactical-dim uppercase bg-black/50 px-3 py-1.5 border border-tactical-border">
              <div className="w-1.5 h-1.5 bg-tactical-green rounded-full"></div> Role: {user?.role || 'Executive'}
           </div>
