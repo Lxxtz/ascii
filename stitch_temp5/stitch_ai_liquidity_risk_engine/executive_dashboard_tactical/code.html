@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RISK_ENGINE_v4.2 | Executive Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #131313;
+            color: #e5e2e1;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .thermal-gradient-red {
+            background: radial-gradient(circle at center, #930005 0%, #1c1b1b 100%);
+            opacity: 0.15;
+        }
+        .dithered-bg {
+            background-image: radial-gradient(#353534 0.5px, transparent 0.5px);
+            background-size: 4px 4px;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#ffffff",
+                      "tertiary-container": "#d47b00",
+                      "primary-container": "#d4d4d4",
+                      "inverse-surface": "#e5e2e1",
+                      "surface-container-low": "#1c1b1b",
+                      "on-surface": "#e5e2e1",
+                      "secondary": "#ffb4aa",
+                      "outline-variant": "#474747",
+                      "tertiary": "#ffdcbf",
+                      "primary-fixed-dim": "#454747",
+                      "secondary-container": "#930005",
+                      "on-primary-fixed": "#ffffff",
+                      "surface-container-high": "#2a2a2a",
+                      "surface-variant": "#353534",
+                      "outline": "#919191",
+                      "on-tertiary-container": "#000000",
+                      "surface-dim": "#131313",
+                      "primary": "#ffffff",
+                      "on-tertiary": "#2d1600",
+                      "background": "#131313",
+                      "secondary-fixed-dim": "#ff8a7b",
+                      "on-error": "#690005",
+                      "surface": "#131313",
+                      "on-primary": "#1a1c1c",
+                      "error-container": "#93000a",
+                      "on-background": "#e5e2e1",
+                      "on-secondary": "#410001",
+                      "on-surface-variant": "#c6c6c6",
+                      "inverse-on-surface": "#313030",
+                      "surface-container-highest": "#353534",
+                      "tertiary-fixed": "#8c5000",
+                      "inverse-primary": "#5d5f5f",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed-dim": "#6a3b00",
+                      "surface-container-lowest": "#0e0e0e",
+                      "on-secondary-fixed-variant": "#7e0004",
+                      "on-primary-container": "#000000",
+                      "on-error-container": "#ffdad6",
+                      "on-secondary-fixed": "#410001",
+                      "primary-fixed": "#5d5f5f",
+                      "on-tertiary-fixed-variant": "#ffdcbf",
+                      "surface-bright": "#393939",
+                      "secondary-fixed": "#ffb4aa",
+                      "surface-container": "#201f1f",
+                      "on-primary-fixed-variant": "#e2e2e2",
+                      "on-secondary-container": "#ffdad5",
+                      "surface-tint": "#c6c6c7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0px",
+                      "lg": "0px",
+                      "xl": "0px",
+                      "full": "0px"
+              },
+              "fontFamily": {
+                      "headline": ["Inter"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background overflow-hidden flex flex-col h-screen">
+<!-- TopAppBar -->
+<header class="bg-[#131313] text-white flex justify-between items-center px-6 py-4 w-full docked full-width top-0 border-none z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white" data-icon="terminal">terminal</span>
+<h1 class="font-['Inter'] font-black tracking-tighter uppercase text-sm text-white">RISK_ENGINE_v4.2</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 items-center font-['Inter'] text-[10px] tracking-widest uppercase">
+<a class="text-white hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">CORE_ENGINE</a>
+<a class="text-gray-500 hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">STRESS_TEST</a>
+<a class="text-gray-500 hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">LIQUIDITY_POOL</a>
+</div>
+<span class="material-symbols-outlined text-white cursor-pointer" data-icon="settings_input_component">settings_input_component</span>
+</div>
+</header>
+<div class="bg-[#353534] h-[2px] w-full shrink-0"></div>
+<!-- Main Instrument Stage -->
+<main class="flex-1 overflow-hidden grid grid-cols-12 gap-0">
+<!-- Sidebar Navigation (Desktop) -->
+<nav class="hidden md:flex col-span-1 bg-surface-container-lowest flex-col items-center py-8 gap-10">
+<div class="bg-white text-black p-3 flex items-center justify-center aspect-square w-12">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+</div>
+<div class="text-gray-400 hover:bg-surface-variant p-3 flex items-center justify-center aspect-square w-12 transition-all">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+</div>
+<div class="text-gray-400 hover:bg-surface-variant p-3 flex items-center justify-center aspect-square w-12 transition-all">
+<span class="material-symbols-outlined" data-icon="precision_manufacturing">precision_manufacturing</span>
+</div>
+<div class="text-gray-400 hover:bg-surface-variant p-3 flex items-center justify-center aspect-square w-12 transition-all">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+</div>
+</nav>
+<!-- Content Canvas -->
+<div class="col-span-12 md:col-span-11 overflow-y-auto no-scrollbar p-6 space-y-6">
+<!-- Hero Metrics: Survival Horizon -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 bg-surface-container-low p-8 relative overflow-hidden group border-l-4 border-secondary">
+<div class="absolute inset-0 thermal-gradient-red pointer-events-none"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-start">
+<div>
+<span class="text-[10px] font-black tracking-[0.2em] uppercase text-outline">PRIMARY_KPI // SYSTEM_STRESS</span>
+<h2 class="text-6xl md:text-8xl font-black tracking-tighter text-white mt-2">42 DAYS</h2>
+<p class="text-secondary font-bold text-xs mt-2 uppercase tracking-widest">CRITICAL_SURVIVAL_HORIZON</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="w-4 h-4 bg-secondary shadow-[0_0_15px_#930005] mb-2"></div>
+<span class="text-[10px] text-outline text-right">STATUS: BREACH_IMMINENT<br/>LVL: 09_ALPHA</span>
+</div>
+</div>
+<div class="mt-12 h-1 w-full bg-surface-container-highest">
+<div class="h-full bg-secondary w-2/3"></div>
+</div>
+<div class="flex justify-between mt-2 text-[10px] font-mono text-outline">
+<span>0D [TERMINATION]</span>
+<span>30D [MIN_REQ]</span>
+<span>90D [STABLE]</span>
+</div>
+</div>
+<!-- Decorative background grid -->
+<div class="absolute right-0 bottom-0 opacity-10 w-48 h-48 dithered-bg pointer-events-none"></div>
+</div>
+<!-- Basel III High Precision Readouts -->
+<div class="bg-surface-container-highest p-6 space-y-8">
+<div>
+<div class="flex justify-between items-end mb-1">
+<span class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">LCR_RATIO</span>
+<span class="text-white font-black text-xl">104.2%</span>
+</div>
+<div class="grid grid-cols-10 gap-1 h-3">
+<div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-white"></div><div class="bg-outline-variant"></div>
+</div>
+<p class="text-[9px] text-outline mt-2 uppercase">Liquidity Coverage Ratio // BASEL_III_S1</p>
+</div>
+<div>
+<div class="flex justify-between items-end mb-1">
+<span class="text-[10px] font-black uppercase tracking-widest text-on-surface-variant">NSFR_RATIO</span>
+<span class="text-white font-black text-xl">98.8%</span>
+</div>
+<div class="grid grid-cols-10 gap-1 h-3">
+<div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-tertiary-container"></div><div class="bg-outline-variant"></div><div class="bg-outline-variant"></div>
+</div>
+<p class="text-[9px] text-tertiary mt-2 uppercase">Net Stable Funding Ratio // WARNING_THRESHOLD</p>
+</div>
+</div>
+</section>
+<!-- Technical Chart & Live Signals -->
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[400px]">
+<!-- High Density Forecast Chart Container -->
+<div class="lg:col-span-3 bg-surface-container-lowest p-6 flex flex-col relative overflow-hidden">
+<div class="flex justify-between items-center mb-6">
+<span class="text-[10px] font-black tracking-widest uppercase">NET_CASH_FLOW_PROJECTION_V8</span>
+<div class="flex gap-4">
+<span class="text-[10px] text-outline">30D_VAR: -2.4M</span>
+<span class="text-[10px] text-outline">CONFIDENCE: 94.2%</span>
+</div>
+</div>
+<div class="flex-1 relative border-l border-b border-outline-variant">
+<!-- Custom Chart SVG Implementation -->
+<svg class="absolute inset-0 w-full h-full" preserveaspectratio="none">
+<!-- Grid lines -->
+<line stroke="#474747" stroke-dasharray="4" stroke-width="0.5" x1="0" x2="100%" y1="25%" y2="25%"></line>
+<line stroke="#474747" stroke-dasharray="4" stroke-width="0.5" x1="0" x2="100%" y1="50%" y2="50%"></line>
+<line stroke="#474747" stroke-dasharray="4" stroke-width="0.5" x1="0" x2="100%" y1="75%" y2="75%"></line>
+<!-- Trend Line -->
+<polyline class="w-full" fill="none" points="0,80 50,120 100,100 150,150 200,140 250,180 300,160 350,220 400,200 450,260 500,240 550,300 600,280 650,340 700,320 800,380 900,360 1000,400" stroke="white" stroke-width="2" style="vector-effect: non-scaling-stroke;"></polyline>
+<!-- Confidence Interval Overlay -->
+<path d="M0,60 L50,100 L100,80 L150,130 L1000,380 L1000,420 L150,170 L100,120 L50,140 L0,100 Z" fill="white" opacity="0.05"></path>
+</svg>
+<!-- Heatmap Overlay (Fictional) -->
+<div class="absolute bottom-0 right-0 w-full h-24 bg-gradient-to-t from-secondary-container to-transparent opacity-10 pointer-events-none"></div>
+</div>
+</div>
+<!-- Live Risk Signals -->
+<div class="bg-surface-container-high flex flex-col">
+<div class="p-4 bg-surface-container-highest border-b border-outline-variant flex justify-between items-center">
+<span class="text-[10px] font-black tracking-widest uppercase">LIVE_SIGNALS</span>
+<div class="flex gap-1">
+<div class="w-1 h-1 bg-secondary animate-pulse"></div>
+<div class="w-1 h-1 bg-secondary animate-pulse"></div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto no-scrollbar font-mono text-[9px]">
+<!-- Thermal coded alerts -->
+<div class="p-3 border-b border-outline-variant hover:bg-secondary-container transition-colors group">
+<div class="flex justify-between text-secondary font-bold">
+<span>CRITICAL_EXP</span>
+<span>14:22:04</span>
+</div>
+<p class="mt-1 text-on-surface-variant group-hover:text-white">FX_SWAP_MARGIN_CALL: $42.5M - JP_DESK</p>
+</div>
+<div class="p-3 border-b border-outline-variant hover:bg-tertiary-container/20 transition-colors group">
+<div class="flex justify-between text-tertiary font-bold">
+<span>VOL_SPIKE</span>
+<span>14:18:12</span>
+</div>
+<p class="mt-1 text-on-surface-variant group-hover:text-white">EUR/USD 5M_VOL &gt; 1.2% THRESHOLD</p>
+</div>
+<div class="p-3 border-b border-outline-variant hover:bg-white hover:text-black transition-colors group">
+<div class="flex justify-between text-white font-bold group-hover:text-black">
+<span>SYS_MSG</span>
+<span>14:05:55</span>
+</div>
+<p class="mt-1 text-on-surface-variant group-hover:text-black">LIQUIDITY_BUFFER_CALCULATION_COMPLETE</p>
+</div>
+<div class="p-3 border-b border-outline-variant hover:bg-secondary-container transition-colors group">
+<div class="flex justify-between text-secondary font-bold">
+<span>CRITICAL_EXP</span>
+<span>13:58:30</span>
+</div>
+<p class="mt-1 text-on-surface-variant group-hover:text-white">EXPOSURE_LIMIT_BREACH: COUNTERPARTY_C12</p>
+</div>
+<div class="p-3 border-b border-outline-variant hover:bg-tertiary-container/20 transition-colors group">
+<div class="flex justify-between text-tertiary font-bold">
+<span>WARM_TRND</span>
+<span>13:42:01</span>
+</div>
+<p class="mt-1 text-on-surface-variant group-hover:text-white">DEPOSIT_OUTFLOW_PROJECTED_EXCEED_2.4%</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Data Grid -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<div class="bg-surface-container-low p-4 flex flex-col justify-between border-t border-outline-variant h-32">
+<span class="text-[10px] font-black text-outline uppercase tracking-widest">TIER_1_CAPITAL</span>
+<span class="text-2xl font-black text-white">12.8%</span>
+<div class="text-[9px] text-tertiary">LIMIT: 11.5% | BUFF: 1.3%</div>
+</div>
+<div class="bg-surface-container-low p-4 flex flex-col justify-between border-t border-outline-variant h-32">
+<span class="text-[10px] font-black text-outline uppercase tracking-widest">HQLA_BALANCE</span>
+<span class="text-2xl font-black text-white">$4.82B</span>
+<div class="text-[9px] text-secondary">DELTA: -142M (24H)</div>
+</div>
+<div class="bg-surface-container-low p-4 flex flex-col justify-between border-t border-outline-variant h-32">
+<span class="text-[10px] font-black text-outline uppercase tracking-widest">VAR_99_1D</span>
+<span class="text-2xl font-black text-white">$18.4M</span>
+<div class="text-[9px] text-outline">STABLE: +/- 0.4%</div>
+</div>
+<div class="bg-surface-container-low p-4 flex flex-col justify-between border-t border-outline-variant h-32">
+<span class="text-[10px] font-black text-outline uppercase tracking-widest">STRESS_TEST_SCENARIO</span>
+<span class="text-lg font-black text-white truncate">ADVERSE_YIELD_CURVE_IV</span>
+<div class="text-[9px] text-on-surface-variant italic">ID: X74-GAMMA-2024</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Mobile Bottom Navigation -->
+<nav class="md:hidden bg-[#0e0e0e] w-full z-50 h-16 flex justify-around items-stretch relative">
+<div class="bg-[#353534] h-[1px] w-full absolute top-0"></div>
+<a class="flex items-center justify-center bg-white text-black h-full w-full" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534]" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534]" href="#">
+<span class="material-symbols-outlined" data-icon="precision_manufacturing">precision_manufacturing</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534]" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+</a>
+</nav>
+<!-- Global Background Elements -->
+<div class="fixed inset-0 pointer-events-none opacity-5 mix-blend-overlay">
+<img alt="abstract circuit board background with complex geometry and technical lines" class="w-full h-full object-cover grayscale" data-alt="monochrome technical circuit pattern with etched lines and high density electrical components in dark grey tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4FNmQ_gC0UAx1EiauI4qc9bI0mvJwgOpFRQ8agFWp4Z4ufmFEZcNfK9srRBoR8zXauCdqlzw9bjzriCcsDvNxAZLMcD5aTRRNgyvHp5ZOFTXR4DXy1FQuTOsalpIDOTNVyH46NtB5HTAadCr39NDNgoR78sQKBuaFrTKMzoLws2dsw940ON1wSINCFbOJC1PnO-OUYq30qHIeZAFIIja9V2sr0T6dlQbkMLLpObigKd-g_oS4B_hgJYffZMrcXhSrOPNiV7idfMdA"/>
+</div>
+</body></html>

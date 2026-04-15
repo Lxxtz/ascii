@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RiskEngine | AI Liquidity Forecasting</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#d5e3fc",
+                        "surface-variant": "#d5e5ef",
+                        "secondary-container": "#d4e4fa",
+                        "tertiary-fixed": "#dce6f3",
+                        "on-surface": "#26343d",
+                        "surface-container-highest": "#d5e5ef",
+                        "surface-dim": "#cadde9",
+                        "on-secondary-fixed-variant": "#4e5d6f",
+                        "surface-container": "#e5eff7",
+                        "tertiary-dim": "#4a545e",
+                        "inverse-surface": "#0a0f12",
+                        "on-tertiary-fixed-variant": "#545e69",
+                        "secondary-fixed-dim": "#c6d6ec",
+                        "on-primary": "#f6f7ff",
+                        "on-primary-fixed-variant": "#4e5c71",
+                        "secondary": "#526073",
+                        "on-tertiary": "#f6f9ff",
+                        "secondary-dim": "#465467",
+                        "surface-tint": "#515f74",
+                        "on-secondary-container": "#445365",
+                        "primary-fixed": "#d5e3fc",
+                        "background": "#f6fafe",
+                        "surface-container-lowest": "#ffffff",
+                        "error": "#9f403d",
+                        "error-dim": "#4e0309",
+                        "secondary-fixed": "#d4e4fa",
+                        "inverse-on-surface": "#999da1",
+                        "error-container": "#fe8983",
+                        "tertiary-fixed-dim": "#ced8e4",
+                        "on-tertiary-container": "#4b545e",
+                        "on-primary-container": "#455367",
+                        "on-primary-fixed": "#324053",
+                        "surface-container-high": "#ddeaf3",
+                        "surface-container-low": "#eef4fa",
+                        "primary-fixed-dim": "#c7d5ed",
+                        "primary": "#515f74",
+                        "tertiary": "#56606a",
+                        "on-secondary-fixed": "#324052",
+                        "outline-variant": "#a4b4be",
+                        "on-background": "#26343d",
+                        "on-error": "#fff7f6",
+                        "on-error-container": "#752121",
+                        "inverse-primary": "#d8e6ff",
+                        "surface": "#f6fafe",
+                        "on-secondary": "#f7f9ff",
+                        "outline": "#6e7d86",
+                        "primary-dim": "#455367",
+                        "surface-bright": "#f6fafe",
+                        "on-tertiary-fixed": "#38424c",
+                        "on-surface-variant": "#52616a",
+                        "tertiary-container": "#dce6f3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-header {
+            background: rgba(246, 250, 254, 0.7);
+            backdrop-filter: blur(20px);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-6 py-3 w-full bg-[#f6fafe]/70 dark:bg-[#0f172a]/70 backdrop-blur-xl">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="shield_with_heart">shield_with_heart</span>
+<span class="text-lg font-bold tracking-tighter text-slate-800 dark:text-slate-100">RiskEngine</span>
+</div>
+<nav class="hidden md:flex gap-8 items-center">
+<a class="font-manrope tracking-tight text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 transition-colors duration-300 px-3 py-1 rounded-lg" href="#">Dashboard</a>
+<a class="font-manrope tracking-tight text-sm font-semibold text-slate-900 dark:text-white font-bold px-3 py-1 rounded-lg" href="#">Forecasting</a>
+<a class="font-manrope tracking-tight text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 transition-colors duration-300 px-3 py-1 rounded-lg" href="#">Stress Test</a>
+<a class="font-manrope tracking-tight text-sm font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 transition-colors duration-300 px-3 py-1 rounded-lg" href="#">Compliance</a>
+</nav>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant/20">
+<img alt="Profile" data-alt="Professional headshot of a financial analyst in a modern office, soft natural lighting, minimal corporate aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF3CwPkbH7Ud8IMY_l2DQrgqhrM3SilPo1CzVC4w3q2oc35bQDkSNEFgXxB5uNMSbUoLpxzPPFsXZyBA7aOogq0GSwIU4XQ9fI53Be4PS_nZ35aUjp4DcMjQh6YGrRGrg8tNb0AjLCmtXK5sSOsWUDZErvTn3vvIA4OAT2Cxo9x-uUCgq1G2LmNUem20xfrpU6PwFjTgf5lPDVKthc9BdZaZq7oDo7kUVBi4OIXNz6jqeAiGWqUmbgJA8qhQ1zqWmPLlByXU7kDPKB"/>
+</div>
+</header>
+<main class="pt-20 pb-28 px-6 max-w-7xl mx-auto space-y-8">
+<!-- Hero Section: LSTM Insights -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<div class="lg:col-span-8 flex flex-col gap-2">
+<h1 class="text-3xl font-extrabold tracking-tight text-on-surface">Multivariate LSTM Forecast</h1>
+<p class="text-on-surface-variant max-w-2xl">Liquidity projections utilizing long short-term memory networks. Integrating real-time credit spreads, interest rate volatility, and seasonal flow patterns.</p>
+</div>
+<div class="lg:col-span-4 flex items-end justify-end gap-3">
+<div class="bg-surface-container-low px-4 py-2 rounded-xl flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#515f74]"></span>
+<span class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Model Confidence: 94.2%</span>
+</div>
+</div>
+</section>
+<!-- Main Charting Area (Bento) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- Primary 30-Day Liquidity Projection -->
+<div class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-8 overflow-hidden relative group transition-all duration-500">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="text-lg font-bold tracking-tight">30-Day Liquidity Trajectory</h3>
+<p class="text-xs text-on-surface-variant font-medium">+0.05em tracking: USD BILLIONS</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface-container-high px-3 py-1.5 rounded-md text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest transition-colors">7D</button>
+<button class="bg-primary text-on-primary px-3 py-1.5 rounded-md text-xs font-semibold">30D</button>
+<button class="bg-surface-container-high px-3 py-1.5 rounded-md text-xs font-semibold text-on-surface-variant hover:bg-surface-container-highest transition-colors">90D</button>
+</div>
+</div>
+<!-- Visualization Placeholder (SVG Curve) -->
+<div class="h-64 w-full relative flex items-end">
+<svg class="w-full h-full overflow-visible" viewbox="0 0 800 200">
+<!-- Background Grid Lines -->
+<line class="text-outline-variant/10" stroke="currentColor" stroke-width="0.5" x1="0" x2="800" y1="0" y2="0"></line>
+<line class="text-outline-variant/10" stroke="currentColor" stroke-width="0.5" x1="0" x2="800" y1="50" y2="50"></line>
+<line class="text-outline-variant/10" stroke="currentColor" stroke-width="0.5" x1="0" x2="800" y1="100" y2="100"></line>
+<line class="text-outline-variant/10" stroke="currentColor" stroke-width="0.5" x1="0" x2="800" y1="150" y2="150"></line>
+<!-- Prediction Confidence Band -->
+<path class="text-primary-container/30" d="M0 100 Q 100 80, 200 110 T 400 90 T 600 130 T 800 100 L 800 150 Q 600 170, 400 140 T 200 160 T 0 130 Z" fill="currentColor"></path>
+<!-- Main Trend Line -->
+<path class="text-primary" d="M0 115 Q 100 95, 200 125 T 400 105 T 600 145 T 800 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="3"></path>
+<!-- Data Points -->
+<circle class="text-primary" cx="200" cy="125" fill="currentColor" r="4"></circle>
+<circle class="text-primary" cx="400" cy="105" fill="currentColor" r="4"></circle>
+<circle class="text-primary" cx="600" cy="145" fill="currentColor" r="4"></circle>
+</svg>
+<!-- Tooltip Style Decoration -->
+<div class="absolute left-1/2 top-1/4 -translate-x-1/2 bg-surface-container-lowest border border-outline-variant/10 shadow-xl rounded-lg p-3 text-center">
+<p class="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Projected Peak</p>
+<p class="text-lg font-extrabold text-on-surface">$12.4B</p>
+<p class="text-[10px] text-primary">Day 18 Forecast</p>
+</div>
+</div>
+<div class="grid grid-cols-4 mt-8 pt-6 border-t border-surface-container">
+<div class="text-center">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">Base Case</p>
+<p class="text-xl font-bold">$11.2B</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">Bull Case</p>
+<p class="text-xl font-bold text-primary">$13.8B</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">Bear Case</p>
+<p class="text-xl font-bold text-error">$8.4B</p>
+</div>
+<div class="text-center">
+<p class="text-[10px] text-on-surface-variant font-bold uppercase mb-1">Variance</p>
+<p class="text-xl font-bold">2.4%</p>
+</div>
+</div>
+</div>
+<!-- Heat-Mapped Sensitivity Analysis -->
+<div class="lg:col-span-4 bg-surface-container-low rounded-xl p-8 flex flex-col">
+<div class="mb-6">
+<h3 class="text-lg font-bold tracking-tight">Sensitivity Heatmap</h3>
+<p class="text-xs text-on-surface-variant font-medium">Interest Rates vs Credit Spreads</p>
+</div>
+<!-- Heatmap Grid -->
+<div class="flex-grow grid grid-cols-5 grid-rows-5 gap-1.5">
+<!-- Row 1 -->
+<div class="bg-primary/20 rounded-sm"></div>
+<div class="bg-primary/30 rounded-sm"></div>
+<div class="bg-primary/40 rounded-sm"></div>
+<div class="bg-primary/50 rounded-sm"></div>
+<div class="bg-primary/60 rounded-sm"></div>
+<!-- Row 2 -->
+<div class="bg-primary/30 rounded-sm"></div>
+<div class="bg-primary/40 rounded-sm"></div>
+<div class="bg-primary/60 rounded-sm"></div>
+<div class="bg-primary/70 rounded-sm"></div>
+<div class="bg-error/30 rounded-sm"></div>
+<!-- Row 3 -->
+<div class="bg-primary/40 rounded-sm"></div>
+<div class="bg-primary/60 rounded-sm"></div>
+<div class="bg-primary/80 rounded-sm"></div>
+<div class="bg-error/40 rounded-sm"></div>
+<div class="bg-error/50 rounded-sm"></div>
+<!-- Row 4 -->
+<div class="bg-primary/50 rounded-sm"></div>
+<div class="bg-primary/70 rounded-sm"></div>
+<div class="bg-error/40 rounded-sm"></div>
+<div class="bg-error/60 rounded-sm"></div>
+<div class="bg-error/70 rounded-sm"></div>
+<!-- Row 5 -->
+<div class="bg-primary/60 rounded-sm"></div>
+<div class="bg-error/30 rounded-sm"></div>
+<div class="bg-error/50 rounded-sm"></div>
+<div class="bg-error/70 rounded-sm"></div>
+<div class="bg-error-container/80 rounded-sm"></div>
+</div>
+<div class="mt-6 flex justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+<span>Low Spread</span>
+<span>High Spread</span>
+</div>
+<div class="mt-4 p-4 bg-surface-container-lowest rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error" data-icon="warning">warning</span>
+<div class="text-xs font-medium">
+                            Critical zone detected at +50bps rate shift.
+                        </div>
+</div>
+</div>
+</div>
+<!-- Multivariate Feature Importance -->
+<div class="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-high rounded-xl p-6 border-l-4 border-primary">
+<p class="text-[10px] font-bold text-primary uppercase tracking-widest mb-2">Primary Driver</p>
+<h4 class="text-sm font-bold mb-4">SOFR Volatility</h4>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary w-[82%] h-full"></div>
+</div>
+<p class="mt-2 text-[10px] text-on-surface-variant text-right">82% Impact weight</p>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-high rounded-xl p-6 border-l-4 border-primary/50">
+<p class="text-[10px] font-bold text-primary/50 uppercase tracking-widest mb-2">Secondary Driver</p>
+<h4 class="text-sm font-bold mb-4">Corporate Spread Index</h4>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary/50 w-[54%] h-full"></div>
+</div>
+<p class="mt-2 text-[10px] text-on-surface-variant text-right">54% Impact weight</p>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-high rounded-xl p-6 border-l-4 border-outline-variant">
+<p class="text-[10px] font-bold text-outline-variant uppercase tracking-widest mb-2">External Factor</p>
+<h4 class="text-sm font-bold mb-4">Treasury Yield Curve</h4>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="bg-outline-variant w-[21%] h-full"></div>
+</div>
+<p class="mt-2 text-[10px] text-on-surface-variant text-right">21% Impact weight</p>
+</div>
+</div>
+<!-- Model Health Metrics -->
+<div class="lg:col-span-5 bg-surface-container-lowest rounded-xl p-8">
+<h3 class="text-lg font-bold tracking-tight mb-6">Model Architecture</h3>
+<ul class="space-y-6">
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-dim" data-icon="layers">layers</span>
+<span class="text-sm font-medium">LSTM Hidden Layers</span>
+</div>
+<span class="text-sm font-bold">4 Blocks</span>
+</li>
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-dim" data-icon="memory">memory</span>
+<span class="text-sm font-medium">Epochs Trained</span>
+</div>
+<span class="text-sm font-bold">2,500</span>
+</li>
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-dim" data-icon="speed">speed</span>
+<span class="text-sm font-medium">Inference Latency</span>
+</div>
+<span class="text-sm font-bold">42ms</span>
+</li>
+<li class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-dim" data-icon="history">history</span>
+<span class="text-sm font-medium">Lookback Window</span>
+</div>
+<span class="text-sm font-bold">180 Days</span>
+</li>
+</ul>
+</div>
+<!-- Contextual Insights Section -->
+<div class="lg:col-span-7 bg-surface-variant/40 rounded-xl p-8 relative overflow-hidden">
+<div class="absolute -right-12 -bottom-12 opacity-5">
+<span class="material-symbols-outlined text-[200px]" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<h3 class="text-lg font-bold tracking-tight mb-4">Narrative Intelligence</h3>
+<div class="space-y-4">
+<p class="text-sm text-on-surface leading-relaxed">
+                        The model identifies a <span class="font-bold text-primary">convergence of tightening credit spreads</span> and moderate interest rate stability over the next 14 days, leading to a surplus liquidity buffer. 
+                    </p>
+<p class="text-sm text-on-surface leading-relaxed">
+                        However, the Multivariate LSTM signals a <span class="font-bold text-error">tail-risk event</span> starting Day 22, driven by historical end-of-quarter treasury liquidations. It is recommended to maintain an additional 5% cash-on-hand starting on Day 20.
+                    </p>
+<div class="pt-4 flex gap-4">
+<button class="bg-primary text-on-primary px-5 py-2 rounded-lg text-sm font-bold shadow-lg shadow-primary/10">Export Model Report</button>
+<button class="text-primary text-sm font-bold px-5 py-2 hover:bg-surface-container-highest transition-colors rounded-lg">View Data Source</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-2 bg-[#ffffff] dark:bg-[#1e293b] z-50 rounded-t-xl border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_24px_rgba(38,52,61,0.05)] md:hidden">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 transition-all duration-400 ease-out hover:text-slate-600" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-[10px] font-medium tracking-wide uppercase mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl px-3 py-1.5 transition-all duration-400 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+<span class="font-manrope text-[10px] font-medium tracking-wide uppercase mt-1">Forecasting</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 transition-all duration-400 ease-out hover:text-slate-600" href="#">
+<span class="material-symbols-outlined" data-icon="Model_Training">model_training</span>
+<span class="font-manrope text-[10px] font-medium tracking-wide uppercase mt-1">Stress Test</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-3 py-1.5 transition-all duration-400 ease-out hover:text-slate-600" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+<span class="font-manrope text-[10px] font-medium tracking-wide uppercase mt-1">Compliance</span>
+</a>
+</nav>
+</body></html>

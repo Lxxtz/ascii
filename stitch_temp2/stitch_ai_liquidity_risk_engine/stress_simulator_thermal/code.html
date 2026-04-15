@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ILAAP Stress Simulator | RISK ENGINE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ee7d77",
+                    "background": "#0e0e0e",
+                    "on-error-container": "#ff9993",
+                    "on-tertiary-container": "#594a00",
+                    "on-tertiary-fixed": "#433700",
+                    "surface-container-high": "#1f2020",
+                    "outline-variant": "#484848",
+                    "outline": "#767575",
+                    "primary": "#ffb3ad",
+                    "inverse-on-surface": "#565554",
+                    "secondary": "#04c339",
+                    "on-tertiary": "#635200",
+                    "surface-variant": "#252626",
+                    "secondary-fixed-dim": "#53f262",
+                    "on-secondary-fixed": "#004b10",
+                    "tertiary": "#ffe484",
+                    "secondary-dim": "#00b735",
+                    "surface-container-highest": "#252626",
+                    "primary-dim": "#ff9f98",
+                    "tertiary-fixed-dim": "#edc600",
+                    "on-surface": "#e7e5e4",
+                    "secondary-fixed": "#70ff76",
+                    "tertiary-dim": "#edc600",
+                    "on-primary-fixed": "#850010",
+                    "on-primary-fixed-variant": "#b51621",
+                    "surface-bright": "#2c2c2c",
+                    "on-background": "#e7e5e4",
+                    "surface-tint": "#ffb3ad",
+                    "on-surface-variant": "#acabaa",
+                    "primary-fixed-dim": "#ffc7c2",
+                    "on-tertiary-fixed-variant": "#645300",
+                    "error-dim": "#bb5551",
+                    "inverse-surface": "#fcf8f8",
+                    "on-primary": "#860011",
+                    "secondary-container": "#00460e",
+                    "surface-dim": "#0e0e0e",
+                    "on-secondary-fixed-variant": "#006b1b",
+                    "surface-container-lowest": "#000000",
+                    "on-error": "#490106",
+                    "on-secondary-container": "#38db4f",
+                    "on-primary-container": "#ffc1bc",
+                    "surface": "#0e0e0e",
+                    "inverse-primary": "#ba1b24",
+                    "tertiary-container": "#fdd404",
+                    "surface-container": "#191a1a",
+                    "error-container": "#7f2927",
+                    "surface-container-low": "#131313",
+                    "primary-fixed": "#ffdad7",
+                    "on-secondary": "#003208",
+                    "tertiary-fixed": "#fdd404",
+                    "primary-container": "#930013"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+        }
+        /* Custom range slider styling to match the primary thermal red */
+        input[type=range]::-webkit-slider-runnable-track {
+            background: #1f2020;
+            height: 4px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 2px;
+            background: #ffb3ad;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(255, 179, 173, 0.4);
+        }
+        .thermal-bg-gradient {
+            background: linear-gradient(45deg, #ffb3ad 0%, #930013 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#0e0e0e] flex justify-between items-center px-6 h-16 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ffb3ad]" data-icon="security">security</span>
+<h1 class="text-lg font-black tracking-[-0.02em] text-[#e7e5e4]">RISK ENGINE</h1>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex gap-8 items-center">
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors cursor-pointer px-2 py-1">Dashboard</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#e7e5e4] hover:bg-[#1f2020] transition-colors cursor-pointer px-2 py-1">Simulation</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors cursor-pointer px-2 py-1">Regulatory</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors cursor-pointer px-2 py-1">Alerts</span>
+</nav>
+<span class="material-symbols-outlined text-[#767575] hover:bg-[#1f2020] transition-colors cursor-pointer p-2 rounded" data-icon="settings">settings</span>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-7xl mx-auto min-h-screen">
+<!-- Header Section -->
+<section class="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
+<div class="max-w-2xl">
+<h2 class="text-4xl font-extrabold tracking-tighter mb-2 text-on-surface">ILAAP Stress Simulator</h2>
+<p class="text-outline font-medium text-sm uppercase tracking-widest">Internal Liquidity Adequacy Assessment Process / Scenario v4.2</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-xs font-bold text-outline uppercase mb-1">Engine Status</span>
+<div class="flex items-center gap-2 bg-surface-container-low px-4 py-2">
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_rgba(4,195,57,0.6)]"></div>
+<span class="text-sm font-bold text-on-surface">LIVE CALCULATIONS ACTIVE</span>
+</div>
+</div>
+</section>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Simulation Controls -->
+<div class="md:col-span-4 flex flex-col gap-6">
+<div class="bg-surface-container p-6">
+<h3 class="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-8 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="tune">tune</span> Stress Parameters
+                    </h3>
+<div class="space-y-10">
+<!-- Idiosyncratic Slider -->
+<div class="group">
+<div class="flex justify-between mb-4">
+<label class="text-sm font-bold text-on-surface uppercase tracking-tight">Idiosyncratic Shock</label>
+<span class="text-primary font-mono font-bold">25.5%</span>
+</div>
+<input class="w-full h-1 bg-surface-container-highest appearance-none cursor-pointer" max="100" min="0" type="range" value="25"/>
+<p class="mt-2 text-[10px] text-outline leading-tight uppercase">Impacts bank-specific credit rating and deposit outflows.</p>
+</div>
+<!-- Systemic Slider -->
+<div class="group">
+<div class="flex justify-between mb-4">
+<label class="text-sm font-bold text-on-surface uppercase tracking-tight">Systemic Shock</label>
+<span class="text-primary font-mono font-bold">62.0%</span>
+</div>
+<input class="w-full h-1 bg-surface-container-highest appearance-none cursor-pointer" max="100" min="0" type="range" value="62"/>
+<p class="mt-2 text-[10px] text-outline leading-tight uppercase">Broad market liquidity freeze and collateral haircut escalation.</p>
+</div>
+</div>
+<div class="mt-12">
+<button class="w-full thermal-bg-gradient py-4 text-on-primary font-black uppercase tracking-tighter text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+                            Run Full Crisis Simulation
+                        </button>
+<p class="text-center mt-3 text-[10px] text-outline font-bold uppercase">Estimated compute time: 1.4s</p>
+</div>
+</div>
+<!-- Snapshot Info -->
+<div class="bg-surface-container-low p-6 border-l-2 border-primary/20">
+<h4 class="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Simulation Log</h4>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px] font-mono">
+<span class="text-outline">14:02:11</span>
+<span class="text-on-surface-variant">Baseline data ingested</span>
+</div>
+<div class="flex justify-between text-[11px] font-mono">
+<span class="text-outline">14:02:15</span>
+<span class="text-on-surface-variant">Haircut models updated</span>
+</div>
+<div class="flex justify-between text-[11px] font-mono">
+<span class="text-error">14:03:01</span>
+<span class="text-error font-bold">THRESHOLD BREACH DETECTED</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Gauges & Main Visuals -->
+<div class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- LCR Gauge -->
+<div class="bg-surface-container-high p-8 flex flex-col items-center justify-center relative overflow-hidden">
+<div class="absolute top-4 left-4 text-[10px] font-bold text-outline uppercase tracking-widest">Liquidity Coverage Ratio</div>
+<div class="relative w-48 h-48 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90">
+<circle class="text-surface-variant" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-width="12"></circle>
+<circle class="text-primary" cx="96" cy="96" fill="transparent" r="80" stroke="currentColor" stroke-dasharray="502" stroke-dashoffset="120" stroke-width="12"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-5xl font-black tracking-tighter text-on-surface">114%</span>
+<span class="text-[10px] font-bold text-error tracking-[0.2em] uppercase">Critical</span>
+</div>
+</div>
+<div class="mt-6 flex justify-between w-full text-[10px] font-bold uppercase text-outline">
+<span>Min: 100%</span>
+<span>Current Delta: -14.2%</span>
+</div>
+</div>
+<!-- Survival Horizon -->
+<div class="bg-surface-container-high p-8 flex flex-col justify-between relative">
+<div class="absolute top-4 left-4 text-[10px] font-bold text-outline uppercase tracking-widest">Survival Horizon</div>
+<div class="mt-8">
+<div class="text-7xl font-black tracking-tighter text-on-surface flex items-baseline gap-2">
+                            28 <span class="text-2xl text-outline-variant">DAYS</span>
+</div>
+<div class="mt-4 h-1 w-full bg-surface-variant relative">
+<div class="absolute left-0 top-0 h-full w-[28%] bg-error"></div>
+</div>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 bg-surface-dim p-3">
+<span class="material-symbols-outlined text-error" data-icon="warning" style="font-variation-settings: 'FILL' 1;">warning</span>
+<p class="text-[11px] leading-tight text-on-surface-variant font-medium">Stress scenario suggests exhaustion of HQLA within the regulatory 30-day window.</p>
+</div>
+</div>
+</div>
+<!-- Data Table: Portfolio Sensitivity -->
+<div class="md:col-span-2 bg-surface-container p-6">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-xs font-bold text-on-surface uppercase tracking-widest">Portfolio Sensitivity Analysis</h3>
+<div class="flex gap-2">
+<span class="bg-surface-container-highest px-3 py-1 text-[10px] font-bold uppercase text-outline cursor-pointer">Filter: All Assets</span>
+<span class="bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase cursor-pointer">Export CSV</span>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="text-[10px] font-black uppercase text-outline-variant border-b border-outline-variant/10">
+<tr>
+<th class="pb-4 font-bold">Asset Class</th>
+<th class="pb-4 font-bold">Market Value (BN)</th>
+<th class="pb-4 font-bold">Current Haircut</th>
+<th class="pb-4 font-bold">Stressed Haircut</th>
+<th class="pb-4 font-bold text-right">Liquidity Value</th>
+</tr>
+</thead>
+<tbody class="text-sm font-medium">
+<tr class="group hover:bg-surface-container-high transition-colors">
+<td class="py-4 text-on-surface">Level 1 HQLA (Gov Bonds)</td>
+<td class="py-4 text-on-surface-variant">42.50</td>
+<td class="py-4 text-secondary font-mono">0.0%</td>
+<td class="py-4 text-on-surface font-mono">2.5%</td>
+<td class="py-4 text-right text-on-surface font-bold">41.43</td>
+</tr>
+<tr class="group hover:bg-surface-container-high transition-colors bg-error-container/5">
+<td class="py-4 text-on-surface flex items-center gap-2">
+                                        Level 2A (Corp Bonds)
+                                        <div class="w-1.5 h-1.5 rounded-full bg-error"></div>
+</td>
+<td class="py-4 text-on-surface-variant">12.10</td>
+<td class="py-4 text-on-surface-variant font-mono">15.0%</td>
+<td class="py-4 text-error font-black font-mono">45.0%</td>
+<td class="py-4 text-right text-error font-bold">6.65</td>
+</tr>
+<tr class="group hover:bg-surface-container-high transition-colors">
+<td class="py-4 text-on-surface">Level 2B (Equities/RMBS)</td>
+<td class="py-4 text-on-surface-variant">5.40</td>
+<td class="py-4 text-on-surface-variant font-mono">25.0%</td>
+<td class="py-4 text-on-surface font-mono">50.0%</td>
+<td class="py-4 text-right text-on-surface font-bold">2.70</td>
+</tr>
+<tr class="group hover:bg-surface-container-high transition-colors bg-error-container/10">
+<td class="py-4 text-on-surface flex items-center gap-2">
+                                        Non-HQLA Securities
+                                        <div class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div>
+</td>
+<td class="py-4 text-on-surface-variant">8.90</td>
+<td class="py-4 text-on-surface-variant font-mono">50.0%</td>
+<td class="py-4 text-error font-black font-mono">100.0%</td>
+<td class="py-4 text-right text-error font-bold">0.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 w-full z-50 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-[#484848]/15 flex justify-around items-center h-20 pb-safe">
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#ffb3ad] transition-all duration-300 scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Simulation</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Regulatory</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] transition-colors scale-95 active:scale-90 transition-transform relative">
+<span class="material-symbols-outlined" data-icon="notification_important">notification_important</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Alerts</span>
+<div class="absolute top-0 right-2 w-2 h-2 bg-error rounded-full"></div>
+</div>
+</nav>
+</body></html>

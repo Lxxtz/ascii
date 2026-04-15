@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RISK_ENGINE_v4.2 | ILAAP Simulator</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#ffffff",
+                    "tertiary-container": "#d47b00",
+                    "primary-container": "#d4d4d4",
+                    "inverse-surface": "#e5e2e1",
+                    "surface-container-low": "#1c1b1b",
+                    "on-surface": "#e5e2e1",
+                    "secondary": "#ffb4aa",
+                    "outline-variant": "#474747",
+                    "tertiary": "#ffdcbf",
+                    "primary-fixed-dim": "#454747",
+                    "secondary-container": "#930005",
+                    "on-primary-fixed": "#ffffff",
+                    "surface-container-high": "#2a2a2a",
+                    "surface-variant": "#353534",
+                    "outline": "#919191",
+                    "on-tertiary-container": "#000000",
+                    "surface-dim": "#131313",
+                    "primary": "#ffffff",
+                    "on-tertiary": "#2d1600",
+                    "background": "#131313",
+                    "secondary-fixed-dim": "#ff8a7b",
+                    "on-error": "#690005",
+                    "surface": "#131313",
+                    "on-primary": "#1a1c1c",
+                    "error-container": "#93000a",
+                    "on-background": "#e5e2e1",
+                    "on-secondary": "#410001",
+                    "on-surface-variant": "#c6c6c6",
+                    "inverse-on-surface": "#313030",
+                    "surface-container-highest": "#353534",
+                    "tertiary-fixed": "#8c5000",
+                    "inverse-primary": "#5d5f5f",
+                    "error": "#ffb4ab",
+                    "tertiary-fixed-dim": "#6a3b00",
+                    "surface-container-lowest": "#0e0e0e",
+                    "on-secondary-fixed-variant": "#7e0004",
+                    "on-primary-container": "#000000",
+                    "on-error-container": "#ffdad6",
+                    "on-secondary-fixed": "#410001",
+                    "primary-fixed": "#5d5f5f",
+                    "on-tertiary-fixed-variant": "#ffdcbf",
+                    "surface-bright": "#393939",
+                    "secondary-fixed": "#ffb4aa",
+                    "surface-container": "#201f1f",
+                    "on-primary-fixed-variant": "#e2e2e2",
+                    "on-secondary-container": "#ffdad5",
+                    "surface-tint": "#c6c6c7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0px",
+                    "lg": "0px",
+                    "xl": "0px",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #0e0e0e; }
+        ::-webkit-scrollbar-thumb { background: #353534; }
+        .thermal-dither {
+            background-image: radial-gradient(#930005 1px, transparent 1px);
+            background-size: 4px 4px;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            background: #353534;
+            height: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 24px;
+            background: #ffffff;
+            cursor: pointer;
+            border-radius: 0;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar Execution -->
+<header class="bg-[#131313] flex justify-between items-center px-6 py-4 w-full fixed top-0 z-50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white" data-icon="terminal">terminal</span>
+<h1 class="font-['Inter'] font-black tracking-tighter uppercase text-sm text-white">RISK_ENGINE_v4.2</h1>
+</div>
+<div class="flex items-center gap-6">
+<nav class="hidden md:flex items-center gap-8 text-xs font-bold tracking-widest uppercase">
+<a class="text-white" href="#">Simulator</a>
+<a class="text-gray-500 hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">Analytics</a>
+<a class="text-gray-500 hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">Nodes</a>
+<a class="text-gray-500 hover:bg-white hover:text-black transition-colors duration-75 px-2 py-1" href="#">Archive</a>
+</nav>
+<span class="material-symbols-outlined text-white" data-icon="settings_input_component">settings_input_component</span>
+</div>
+<div class="bg-[#353534] h-[2px] w-full absolute bottom-0 left-0"></div>
+</header>
+<main class="pt-20 pb-24 px-6 max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-0 border-x border-outline-variant/10">
+<!-- Left Column: Parameters -->
+<section class="md:col-span-4 bg-surface-container-low p-6 border-r border-outline-variant/20">
+<div class="mb-8">
+<h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-outline mb-1">Module // 01</h2>
+<h3 class="text-lg font-black tracking-tighter uppercase mb-6">Simulation Parameters</h3>
+<!-- Parameter: Idiosyncratic Shock -->
+<div class="mb-10 group">
+<div class="flex justify-between items-end mb-4">
+<label class="text-[11px] font-bold uppercase tracking-tight">Idiosyncratic Shock</label>
+<span class="text-2xl font-black tabular-nums">42<span class="text-[10px] text-outline ml-1">%</span></span>
+</div>
+<input class="w-full cursor-pointer accent-white" max="100" min="0" type="range" value="42"/>
+<p class="text-[9px] text-outline mt-2 leading-tight uppercase tracking-widest">Localized liquidity drain. Counterparty defaults + asset fire-sales.</p>
+</div>
+<!-- Parameter: Systemic Shock -->
+<div class="mb-10 group">
+<div class="flex justify-between items-end mb-4">
+<label class="text-[11px] font-bold uppercase tracking-tight text-tertiary">Systemic Shock</label>
+<span class="text-2xl font-black tabular-nums text-tertiary">78<span class="text-[10px] text-outline ml-1">%</span></span>
+</div>
+<input class="w-full cursor-pointer" max="100" min="0" type="range" value="78"/>
+<p class="text-[9px] text-outline mt-2 leading-tight uppercase tracking-widest">Market-wide collapse. Interbank freeze + regulatory tightening.</p>
+</div>
+<!-- Command Button -->
+<button class="w-full bg-primary text-on-primary py-4 font-black uppercase tracking-[0.3em] text-xs hover:bg-secondary-fixed transition-colors active:scale-[0.98]">
+                    Run Simulation_
+                </button>
+</div>
+<!-- Terminal Readout -->
+<div class="mt-12">
+<div class="flex items-center gap-2 mb-3">
+<span class="w-2 h-2 bg-secondary animate-pulse"></span>
+<h4 class="text-[10px] font-bold uppercase tracking-widest">Live Event Log</h4>
+</div>
+<div class="bg-surface-container-lowest p-4 h-64 overflow-y-auto font-mono text-[10px] leading-relaxed border-l-2 border-outline-variant">
+<div class="mb-2 text-outline">[14:22:01] INITIALIZING ILAAP_V4 ENGINE...</div>
+<div class="mb-2 text-outline">[14:22:02] LOADING HISTORICAL VOLATILITY VECTORS...</div>
+<div class="mb-2 text-white"><span class="text-tertiary">[WARN]</span> UNUSUAL DRAWDOWN DETECTED IN SECTOR_04</div>
+<div class="mb-2 text-white"><span class="text-secondary">[CRIT]</span> BREACH DETECTED: SURVIVAL_HORIZON &lt; 30D</div>
+<div class="mb-2 text-outline">[14:22:05] CALCULATING CONTAGION COEFFICIENTS...</div>
+<div class="mb-2 text-outline">[14:22:08] ASSET CLASS 'A' LIQUIDITY COMPROMISED...</div>
+<div class="mb-2 text-secondary font-bold">&gt;&gt;&gt; ALERT: LCR FALLING BELOW REGULATORY THRESHOLD</div>
+<div class="mb-2 text-white">_WAITING FOR PARAMETER INPUT_</div>
+<div class="animate-pulse">_</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Visualization Stage -->
+<section class="md:col-span-8 bg-surface p-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+<!-- Metric: LCR Impact -->
+<div class="relative bg-surface-container-high p-6 group overflow-hidden">
+<!-- Thermal Breach Background Effect -->
+<div class="absolute inset-0 thermal-dither opacity-20 pointer-events-none"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-widest text-outline mb-1">Liquidity Coverage Ratio</h4>
+<div class="text-4xl font-black tabular-nums tracking-tighter">84.2<span class="text-sm ml-1 text-secondary">%</span></div>
+</div>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+<!-- Mini Chart Concept -->
+<div class="h-24 w-full flex items-end gap-1 mb-4">
+<div class="bg-outline-variant w-full h-[80%]"></div>
+<div class="bg-outline-variant w-full h-[75%]"></div>
+<div class="bg-outline-variant w-full h-[60%]"></div>
+<div class="bg-outline-variant w-full h-[40%]"></div>
+<div class="bg-secondary-container w-full h-[30%]"></div>
+<div class="bg-secondary w-full h-[22%]"></div>
+</div>
+<div class="flex justify-between text-[9px] uppercase font-bold text-outline">
+<span>T-30D</span>
+<span class="text-secondary">Projected Breach</span>
+</div>
+</div>
+</div>
+<!-- Metric: Survival Horizon -->
+<div class="bg-surface-container-high p-6 border-l-4 border-tertiary">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-widest text-outline mb-1">Survival Horizon</h4>
+<div class="text-4xl font-black tabular-nums tracking-tighter">18<span class="text-sm ml-1">DAYS</span></div>
+</div>
+<span class="material-symbols-outlined text-tertiary">timelapse</span>
+</div>
+<div class="grid grid-cols-7 gap-1 h-24 mb-4">
+<div class="bg-white"></div>
+<div class="bg-white"></div>
+<div class="bg-white/50"></div>
+<div class="bg-white/20"></div>
+<div class="bg-tertiary-container/40"></div>
+<div class="bg-tertiary-container/60"></div>
+<div class="bg-tertiary"></div>
+</div>
+<div class="text-[9px] uppercase font-bold text-outline text-right">
+                        Target: <span class="text-white">90 Days</span>
+</div>
+</div>
+</div>
+<!-- Central Visualization: Heat Map -->
+<div class="bg-surface-container-lowest p-1 aspect-video relative border border-outline-variant/30">
+<img alt="Tactical Data Visualization" class="w-full h-full object-cover grayscale opacity-40 mix-blend-screen" data-alt="Digital glitch art representing abstract data flow and risk nodes in a monochromatic tactical military interface style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyibklQgDjYp_M77WAy3bvygmjwJDXOnnMljFVGi7RTAYwbw9xVKWYZixCUyvGaLCfpLs8vSxi0oMynAd7_sz0bNmKTl_DdfeYe9jCszyvSamlaKlTR3sU6q-qlztQeuTk65zyHoJ37MtdKRl3jEOYY2Q6FIuZN1S44d4TcQ9Z2Mltw867iHcTj7gGw-MWUZAe3qT17WhxPIzN9MsMgJvSGJPAN-WE8S2vnFEW_8C00KduO6lqaGNu4QyOyxpvEgYop2ehW2K0cVh0"/>
+<!-- Overlay Interface -->
+<div class="absolute inset-0 p-8 flex flex-col justify-between pointer-events-none">
+<div class="flex justify-between items-start">
+<div class="border-l-2 border-t-2 border-white w-12 h-12"></div>
+<div class="bg-black/80 px-3 py-1 border border-outline-variant text-[10px] font-mono">
+                            COORD: 42.921 // 19.004
+                        </div>
+<div class="border-r-2 border-t-2 border-white w-12 h-12"></div>
+</div>
+<div class="flex flex-col items-center">
+<div class="bg-secondary text-on-secondary px-6 py-2 text-xs font-black uppercase tracking-[0.4em] mb-4">
+                            Structural Breach Imminent
+                        </div>
+<div class="w-64 h-px bg-gradient-to-r from-transparent via-secondary to-transparent"></div>
+</div>
+<div class="flex justify-between items-end">
+<div class="border-l-2 border-b-2 border-white w-12 h-12"></div>
+<div class="text-[10px] font-mono text-outline text-right leading-none">
+                            SCAN_FREQ: 400HZ<br/>SYSTEM_STATE: CRITICAL
+                        </div>
+<div class="border-r-2 border-b-2 border-white w-12 h-12"></div>
+</div>
+</div>
+</div>
+<!-- Detail Grid -->
+<div class="mt-8 grid grid-cols-3 gap-px bg-outline-variant/20">
+<div class="bg-surface p-4">
+<span class="text-[9px] font-bold text-outline uppercase block mb-1">HQLA Buffer</span>
+<span class="text-lg font-black text-white">$14.2B</span>
+</div>
+<div class="bg-surface p-4">
+<span class="text-[9px] font-bold text-outline uppercase block mb-1">Net Outflow</span>
+<span class="text-lg font-black text-secondary">$3.1B / Day</span>
+</div>
+<div class="bg-surface p-4">
+<span class="text-[9px] font-bold text-outline uppercase block mb-1">Volatility VIX</span>
+<span class="text-lg font-black text-tertiary">38.4</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar Execution -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-stretch bg-[#0e0e0e] h-16">
+<div class="bg-[#353534] h-[1px] w-full absolute top-0"></div>
+<a class="flex items-center justify-center bg-white text-black h-full w-full active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534] active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="query_stats">query_stats</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534] active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="precision_manufacturing">precision_manufacturing</span>
+</a>
+<a class="flex items-center justify-center text-gray-400 h-full w-full hover:bg-[#353534] active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+</a>
+</nav>
+</body></html>

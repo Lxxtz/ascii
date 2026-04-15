@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ee7d77",
+                    "background": "#0e0e0e",
+                    "on-error-container": "#ff9993",
+                    "on-tertiary-container": "#594a00",
+                    "on-tertiary-fixed": "#433700",
+                    "surface-container-high": "#1f2020",
+                    "outline-variant": "#484848",
+                    "outline": "#767575",
+                    "primary": "#ffb3ad",
+                    "inverse-on-surface": "#565554",
+                    "secondary": "#04c339",
+                    "on-tertiary": "#635200",
+                    "surface-variant": "#252626",
+                    "secondary-fixed-dim": "#53f262",
+                    "on-secondary-fixed": "#004b10",
+                    "tertiary": "#ffe484",
+                    "secondary-dim": "#00b735",
+                    "surface-container-highest": "#252626",
+                    "primary-dim": "#ff9f98",
+                    "tertiary-fixed-dim": "#edc600",
+                    "on-surface": "#e7e5e4",
+                    "secondary-fixed": "#70ff76",
+                    "tertiary-dim": "#edc600",
+                    "on-primary-fixed": "#850010",
+                    "on-primary-fixed-variant": "#b51621",
+                    "surface-bright": "#2c2c2c",
+                    "on-background": "#e7e5e4",
+                    "surface-tint": "#ffb3ad",
+                    "on-surface-variant": "#acabaa",
+                    "primary-fixed-dim": "#ffc7c2",
+                    "on-tertiary-fixed-variant": "#645300",
+                    "error-dim": "#bb5551",
+                    "inverse-surface": "#fcf8f8",
+                    "on-primary": "#860011",
+                    "secondary-container": "#00460e",
+                    "surface-dim": "#0e0e0e",
+                    "on-secondary-fixed-variant": "#006b1b",
+                    "surface-container-lowest": "#000000",
+                    "on-error": "#490106",
+                    "on-secondary-container": "#38db4f",
+                    "on-primary-container": "#ffc1bc",
+                    "surface": "#0e0e0e",
+                    "inverse-primary": "#ba1b24",
+                    "tertiary-container": "#fdd404",
+                    "surface-container": "#191a1a",
+                    "error-container": "#7f2927",
+                    "surface-container-low": "#131313",
+                    "primary-fixed": "#ffdad7",
+                    "on-secondary": "#003208",
+                    "tertiary-fixed": "#fdd404",
+                    "primary-container": "#930013"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #0e0e0e; color: #e7e5e4; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .thermal-gradient-donut {
+            background: conic-gradient(
+                #04c339 0% 60%,
+                #fdd404 60% 85%,
+                #ee7d77 85% 100%
+            );
+            border-radius: 50%;
+            mask: radial-gradient(transparent 55%, black 56%);
+            -webkit-mask: radial-gradient(transparent 55%, black 56%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 bg-[#0e0e0e] dark:bg-[#0e0e0e]">
+<div class="flex justify-between items-center px-6 h-16 w-full bg-[#131313]">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#ffb3ad]">security</span>
+<span class="text-lg font-black tracking-[-0.02em] text-[#e7e5e4] font-['Inter'] uppercase">RISK ENGINE</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex gap-8 items-center">
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors px-2 py-1 cursor-pointer">Dashboard</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors px-2 py-1 cursor-pointer">Simulation</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#e7e5e4] hover:bg-[#1f2020] transition-colors px-2 py-1 cursor-pointer">Regulatory</span>
+<span class="font-['Inter'] tracking-tighter uppercase font-bold text-sm text-[#767575] hover:bg-[#1f2020] transition-colors px-2 py-1 cursor-pointer">Alerts</span>
+</div>
+<span class="material-symbols-outlined text-[#ffb3ad] cursor-pointer active:opacity-80">settings</span>
+</div>
+</div>
+</nav>
+<main class="pt-24 px-6 max-w-7xl mx-auto space-y-8">
+<!-- Header Section -->
+<header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+<div>
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface uppercase">Regulatory Compliance Audit</h1>
+<p class="text-outline text-sm tracking-widest uppercase mt-1">Status: Operational • Cycle Q3-24</p>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container px-6 py-3 border-l-2 border-secondary">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest">LCR Ratio</p>
+<p class="text-3xl font-black text-secondary">138%</p>
+</div>
+<div class="bg-surface-container px-6 py-3 border-l-2 border-tertiary">
+<p class="text-[10px] text-outline uppercase font-bold tracking-widest">CET1 Capital</p>
+<p class="text-3xl font-black text-on-surface">14.2%</p>
+</div>
+</div>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- HQLA Composition Card -->
+<div class="md:col-span-7 bg-surface-container-low p-8 relative overflow-hidden">
+<div class="flex justify-between items-center mb-10">
+<h3 class="text-outline uppercase text-xs font-bold tracking-[0.2em]">HQLA Composition Breakdown</h3>
+<span class="text-on-surface text-xs font-mono">ID: 992-B-RISK</span>
+</div>
+<div class="flex flex-col lg:flex-row items-center gap-12">
+<div class="relative w-64 h-64 shrink-0">
+<div class="thermal-gradient-donut w-full h-full"></div>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-4xl font-black text-on-surface">$4.2B</span>
+<span class="text-[10px] text-outline uppercase tracking-widest">Total HQLA</span>
+</div>
+</div>
+<div class="w-full space-y-6">
+<div class="flex justify-between items-center group">
+<div class="flex items-center gap-3">
+<div class="w-2 h-8 bg-secondary"></div>
+<div>
+<p class="text-sm font-bold text-on-surface uppercase">Level 1 Assets</p>
+<p class="text-[10px] text-outline">Central Bank Reserves &amp; Sovereign Debt</p>
+</div>
+</div>
+<p class="text-xl font-black text-on-surface">60%</p>
+</div>
+<div class="flex justify-between items-center group">
+<div class="flex items-center gap-3">
+<div class="w-2 h-8 bg-tertiary"></div>
+<div>
+<p class="text-sm font-bold text-on-surface uppercase">Level 2A Assets</p>
+<p class="text-[10px] text-outline">Covered Bonds &amp; GSE Securities</p>
+</div>
+</div>
+<p class="text-xl font-black text-on-surface">25%</p>
+</div>
+<div class="flex justify-between items-center group">
+<div class="flex items-center gap-3">
+<div class="w-2 h-8 bg-error"></div>
+<div>
+<p class="text-sm font-bold text-on-surface uppercase">Level 2B Assets</p>
+<p class="text-[10px] text-outline">Corporate Debt &amp; Common Equity</p>
+</div>
+</div>
+<p class="text-xl font-black text-error">15%</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Thermal Pulse / Critical Alerts -->
+<div class="md:col-span-5 flex flex-col gap-6">
+<div class="bg-primary-container p-6 border-none">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<div class="w-2 h-2 rounded-full bg-error animate-pulse shadow-[0_0_8px_#ee7d77]"></div>
+<span class="text-[10px] font-black uppercase text-on-primary-container tracking-widest">Threshold Violation Risk</span>
+</div>
+<h4 class="text-xl font-black text-on-primary-container leading-tight uppercase">Unstable Deposits Surpassed Soft Limit</h4>
+</div>
+<span class="material-symbols-outlined text-on-primary-container">warning</span>
+</div>
+<p class="mt-4 text-sm text-on-primary-container/80 font-medium">Outflow rates for non-operational wholesale deposits increased by 14.2% in the last 48 hours. LCR impact forecast: -420bps.</p>
+</div>
+<div class="bg-surface-container p-6 flex-1">
+<h3 class="text-outline uppercase text-[10px] font-bold tracking-[0.2em] mb-6">Capital Stress Indicators</h3>
+<div class="space-y-6">
+<div>
+<div class="flex justify-between text-[10px] uppercase font-bold mb-2">
+<span class="text-outline">Tier 1 Leverage</span>
+<span class="text-on-surface">5.8%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest">
+<div class="h-full bg-secondary" style="width: 75%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] uppercase font-bold mb-2">
+<span class="text-outline">Net Stable Funding Ratio</span>
+<span class="text-on-surface">112%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest">
+<div class="h-full bg-secondary" style="width: 82%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] uppercase font-bold mb-2">
+<span class="text-outline">Risk Weighted Assets</span>
+<span class="text-on-surface">$12.4B</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest">
+<div class="h-full bg-primary" style="width: 91%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Deposit Audit Table -->
+<div class="md:col-span-12 bg-surface-container-low overflow-hidden">
+<div class="p-6 flex justify-between items-center border-b border-outline-variant/15">
+<h3 class="text-on-surface uppercase text-sm font-black tracking-widest">Deposit Liquidity Profile</h3>
+<button class="bg-surface-container-high hover:bg-surface-bright text-on-surface px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors">Download Report</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-[10px] uppercase text-outline tracking-widest font-black">
+<th class="px-6 py-4">Deposit Category</th>
+<th class="px-6 py-4">Current Value</th>
+<th class="px-6 py-4">Stability Class</th>
+<th class="px-6 py-4">Expected Outflow</th>
+<th class="px-6 py-4 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10">
+<tr class="bg-surface-container-lowest/20">
+<td class="px-6 py-5 font-bold text-on-surface">Retail Insured Deposits</td>
+<td class="px-6 py-5 text-on-surface">$1.82B</td>
+<td class="px-6 py-5">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-black uppercase tracking-tighter">Stable</span>
+</td>
+<td class="px-6 py-5 text-outline">5%</td>
+<td class="px-6 py-5 text-right"><span class="material-symbols-outlined text-secondary text-sm">check_circle</span></td>
+</tr>
+<tr>
+<td class="px-6 py-5 font-bold text-on-surface">Small Business Operational</td>
+<td class="px-6 py-5 text-on-surface">$0.94B</td>
+<td class="px-6 py-5">
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-black uppercase tracking-tighter">Stable</span>
+</td>
+<td class="px-6 py-5 text-outline">10%</td>
+<td class="px-6 py-5 text-right"><span class="material-symbols-outlined text-secondary text-sm">check_circle</span></td>
+</tr>
+<tr class="bg-error-container/5">
+<td class="px-6 py-5 font-bold text-on-surface">Wholesale Non-Operational</td>
+<td class="px-6 py-5 text-on-surface">$2.11B</td>
+<td class="px-6 py-5">
+<span class="px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container text-[10px] font-black uppercase tracking-tighter">Unstable</span>
+</td>
+<td class="px-6 py-5 text-error font-bold">40%</td>
+<td class="px-6 py-5 text-right">
+<div class="inline-flex items-center gap-2">
+<span class="text-[10px] text-error font-black uppercase tracking-widest">Threshold Alert</span>
+<span class="material-symbols-outlined text-error text-sm" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+</td>
+</tr>
+<tr>
+<td class="px-6 py-5 font-bold text-on-surface">Financial Institution Deposits</td>
+<td class="px-6 py-5 text-on-surface">$0.55B</td>
+<td class="px-6 py-5">
+<span class="px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container text-[10px] font-black uppercase tracking-tighter">High Runoff</span>
+</td>
+<td class="px-6 py-5 text-error font-bold">100%</td>
+<td class="px-6 py-5 text-right"><span class="material-symbols-outlined text-error text-sm">priority_high</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Detailed Visual Grid -->
+<div class="md:col-span-4 h-64 bg-surface-container relative group overflow-hidden">
+<img class="w-full h-full object-cover opacity-30 grayscale group-hover:grayscale-0 transition-all duration-700" data-alt="Futuristic glowing data visualization screen with complex financial charts and red alert indicators in a dark control room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBXZipzCOphGjyGaM8dZix_r-95KK6RzW4cSK_Yh6Yer_gS1tcqbbZTg8CPYI91mTaDF8exu6FB3Vf5qytKIjmbi2nViVihkIUIQIuhRBa8Ii9Yr45TA3oya2aB_n1rGUAfGhxbbzTCPHvHLU_ZyDP323okWCXkh9aBskbCTiiPM6CEiaskvo3srM-Dfmrkn_kV3p9PLUyOFPC5Ls1DPMLGMNKLwEKK5rO6FD1h3BmLB6cVpjbPGSLnP2YuaRNsW59SD8hqEdMy1FLP"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+<div class="absolute bottom-6 left-6">
+<p class="text-[10px] text-primary uppercase font-black tracking-widest mb-1">Stress Scenario</p>
+<h4 class="text-xl font-bold uppercase leading-none">Systemic Liquidity Shock</h4>
+</div>
+</div>
+<div class="md:col-span-8 bg-surface-container p-8 flex flex-col justify-center">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div>
+<p class="text-outline uppercase text-[10px] font-bold tracking-widest mb-2">24h Change</p>
+<p class="text-2xl font-black text-error">-2.4%</p>
+</div>
+<div>
+<p class="text-outline uppercase text-[10px] font-bold tracking-widest mb-2">Risk Buffer</p>
+<p class="text-2xl font-black text-on-surface">$840M</p>
+</div>
+<div>
+<p class="text-outline uppercase text-[10px] font-bold tracking-widest mb-2">Compliance Score</p>
+<p class="text-2xl font-black text-secondary">94/100</p>
+</div>
+<div>
+<p class="text-outline uppercase text-[10px] font-bold tracking-widest mb-2">Next Audit</p>
+<p class="text-2xl font-black text-on-surface">08D:12H</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 bg-[#0e0e0e]/70 backdrop-blur-xl border-t border-[#484848]/15 shadow-2xl shadow-black md:hidden">
+<div class="flex justify-around items-center h-20 pb-safe w-full">
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-all cursor-pointer">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-all cursor-pointer">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Simulation</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#ffb3ad] scale-95 active:scale-90 transition-all cursor-pointer">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Regulatory</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#767575] hover:text-[#e7e5e4] scale-95 active:scale-90 transition-all cursor-pointer">
+<span class="material-symbols-outlined">notification_important</span>
+<span class="font-['Inter'] text-[10px] uppercase tracking-widest font-semibold mt-1">Alerts</span>
+</div>
+</div>
+</nav>
+</body></html>
