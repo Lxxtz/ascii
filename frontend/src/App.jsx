@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, ComposedChart
 } from 'recharts';
-import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity, Bell, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity, Bell, ChevronRight, ChevronLeft, Building, Droplet, BarChart2, Cpu, LineChart } from 'lucide-react';
 import './index.css';
 
 // ─── Solution catalog (synced with backend SOLUTIONS) ───
@@ -235,9 +235,204 @@ function App() {
           </header>
 
           {data.length === 0 ? (
-            <div className="no-data">
-              <h3>Simulation Idle</h3>
-              <p>Press Start to begin real-time liquidity simulation.</p>
+            <div className="welcome-container">
+              
+              {/* Top Section: Understanding the Dashboard */}
+              <div>
+                <div className="section-header-centered">
+                  <div className="section-supertitle">KEY METRICS</div>
+                  <h2 className="section-title">Understanding the Dashboard</h2>
+                  <p className="section-subtitle">Core regulatory and financial metrics monitored in real-time during the simulation.</p>
+                </div>
+
+                <div className="metrics-grid-3x2">
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-blue">
+                        <Shield size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">LCR</span>
+                        <span className="metric-fullname">Liquidity Coverage Ratio</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      Measures whether a bank holds enough high-quality liquid assets to survive a <strong>30-day stress scenario</strong>. Basel III mandates a minimum of <strong>100%</strong>.
+                    </p>
+                    <div className="formula-box">
+                      LCR = (HQLA / Net Cash Outflows) × 100
+                    </div>
+                  </div>
+
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-teal">
+                        <Building size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">NSFR</span>
+                        <span className="metric-fullname">Net Stable Funding Ratio</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      Ensures the bank's <strong>long-term funding structure</strong> is stable. Compares available stable funding against required stable funding over a <strong>1-year horizon</strong>.
+                    </p>
+                    <div className="formula-box">
+                      NSFR = Available Stable Funding / Required Stable Funding
+                    </div>
+                  </div>
+
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-green">
+                        <Droplet size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">HQLA</span>
+                        <span className="metric-fullname">High-Quality Liquid Assets</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      Unencumbered assets that can be <strong>instantly converted to cash</strong> — government bonds, central bank reserves, and top-rated corporate debt.
+                    </p>
+                    <div className="formula-box">
+                      HQLA = Level 1 Assets + Level 2A (×0.85) + Level 2B (×0.50)
+                    </div>
+                  </div>
+
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-red">
+                        <Activity size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">NLP</span>
+                        <span className="metric-fullname">Net Liquidity Position</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      The bank's <strong>real-time cash buffer</strong> — total liquid assets minus all obligations. When NLP crosses <strong>zero</strong>, the bank is insolvent.
+                    </p>
+                    <div className="formula-box">
+                      NLP = Total Deposits + HQLA - Withdrawals - Loans Outstanding
+                    </div>
+                  </div>
+
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-orange">
+                        <BarChart2 size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">LDR</span>
+                        <span className="metric-fullname">Loan-to-Deposit Ratio</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      Indicates how much of the bank's deposits are lent out. A ratio above <strong>90%</strong> signals aggressive lending with thin liquidity margins.
+                    </p>
+                    <div className="formula-box">
+                      LDR = (Total Loans / Total Deposits) × 100
+                    </div>
+                  </div>
+
+                  <div className="info-card">
+                    <div className="metric-info-header">
+                      <div className="metric-icon-wrapper icon-yellow">
+                        <TrendingDown size={18} />
+                      </div>
+                      <div className="metric-title-group">
+                        <span className="metric-abbr">Survival Days</span>
+                        <span className="metric-fullname">Predicted Horizon</span>
+                      </div>
+                    </div>
+                    <p className="metric-desc">
+                      Forecasted number of days until the bank's LCR breaches the <strong>100% regulatory minimum</strong> — the core output of our ML ensemble models.
+                    </p>
+                    <div className="formula-box">
+                      Derived from LSTM + Prophet ensemble forecasts
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Section: Forecasting Ensemble */}
+              <div>
+                <div className="section-header-centered">
+                  <div className="section-supertitle">AI MODELS</div>
+                  <h2 className="section-title">Forecasting Ensemble</h2>
+                  <p className="section-subtitle">Two independent models provide robust survival predictions with uncertainty quantification.</p>
+                </div>
+
+                <div className="models-grid-2x1">
+                  <div className="model-card">
+                    <div className="model-header">
+                      <div className="model-title-group">
+                        <Cpu className="model-icon icon-purple" size={20} />
+                        <span className="model-name">LSTM Neural Network</span>
+                      </div>
+                      <span className="model-tag tag-purple">DEEP LEARNING</span>
+                    </div>
+
+                    <div className="model-props-list">
+                      <div className="model-prop-row">
+                        <span className="prop-label">Architecture</span>
+                        <span className="prop-value">3-Layer, 256 Hidden Units</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Training Data</span>
+                        <span className="prop-value">5 Years Synthetic Bank Data</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Lookback Window</span>
+                        <span className="prop-value">30 Days Rolling</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Output</span>
+                        <span className="prop-value">Days Until LCR Breach</span>
+                      </div>
+                    </div>
+
+                    <div className="model-summary-box">
+                      Captures complex non-linear temporal dependencies in liquidity flows using gated recurrent memory cells.
+                    </div>
+                  </div>
+
+                  <div className="model-card">
+                    <div className="model-header">
+                      <div className="model-title-group">
+                        <LineChart className="prophet-icon" size={20} />
+                        <span className="model-name">Prophet Forecaster</span>
+                      </div>
+                      <span className="model-tag tag-teal">TIME-SERIES</span>
+                    </div>
+
+                    <div className="model-props-list">
+                      <div className="model-prop-row">
+                        <span className="prop-label">Framework</span>
+                        <span className="prop-value">Meta Prophet (Additive)</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Changepoints</span>
+                        <span className="prop-value">Auto-detected Regime Shifts</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Uncertainty</span>
+                        <span className="prop-value">80% Confidence Interval</span>
+                      </div>
+                      <div className="model-prop-row">
+                        <span className="prop-label">Output</span>
+                        <span className="prop-value">Survival + Lower Bound</span>
+                      </div>
+                    </div>
+
+                    <div className="model-summary-box">
+                      Decomposes LCR trajectory into trend and changepoint components with built-in uncertainty bands.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           ) : (
             <main>
