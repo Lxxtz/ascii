@@ -21,6 +21,14 @@ const fmtShort = (val) => {
   if (Math.abs(val) >= 1_000) return `${(val / 1_000).toFixed(0)}K`;
   return `${val.toFixed(0)}`;
 };
+/* Short date: '2026-01-15' → 'Jan 15' */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtDate = (d) => {
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length < 3) return d;
+  return `${MONTHS[parseInt(parts[1],10)-1]} ${parseInt(parts[2],10)}`;
+};
 
 /* Tooltip Renderer */
 const TacticalTooltip = ({ active, payload, label }) => {
@@ -275,38 +283,110 @@ export default function App() {
               className="p-1.5 text-tactical-dim hover:text-white transition-colors relative">
               <span className="material-symbols-outlined text-[20px]">notifications</span>
               {unreadAlerts > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-tactical-red-bright text-white text-[8px] font-bold flex items-center justify-center">
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-tactical-red-bright text-white text-[8px] font-bold flex items-center justify-center px-0.5 rounded-sm shadow-[0_0_8px_rgba(255,51,51,0.5)]">
                   {unreadAlerts}
                 </span>
               )}
             </button>
-            {/* Notification Dropdown */}
+            {/* ─── Notification Panel ─── */}
             {showNotifications && (
-              <div className="absolute right-0 top-10 w-80 bg-[#111] border border-tactical-border shadow-2xl z-50 max-h-80 overflow-y-auto no-scrollbar">
-                <div className="px-4 py-3 border-b border-tactical-border text-[10px] font-sans font-bold tracking-widest uppercase text-white">ALERTS ({systemAlerts.length})</div>
-                {systemAlerts.length === 0 ? (
-                  <div className="p-4 text-[10px] text-tactical-dim italic">No alerts yet.</div>
-                ) : systemAlerts.slice(0, 10).map(a => (
-                  <div key={a.uid} className="px-4 py-3 border-b border-tactical-border/50 hover:bg-[#1a1a1a]">
-                    <div className="flex justify-between">
-                      <span className={`text-[9px] font-bold uppercase ${a.severity === 'critical' ? 'text-tactical-red-bright' : 'text-tactical-orange'}`}>{a.severity}</span>
-                      <span className="text-[9px] text-tactical-dim">{a.timestamp}</span>
+              <>
+                {/* Backdrop */}
+                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
+                <div className="absolute right-0 top-12 w-96 bg-[#0d0d0d] border border-tactical-border shadow-[0_8px_40px_rgba(0,0,0,0.8)] z-50 flex flex-col" style={{maxHeight: '480px'}}>
+                  {/* Header */}
+                  <div className="px-5 py-3 border-b border-tactical-border flex justify-between items-center shrink-0 bg-[#111]">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-tactical-dim">notifications_active</span>
+                      <span className="text-[11px] font-sans font-bold tracking-widest uppercase text-white">Alerts</span>
+                      <span className="text-[9px] font-mono text-tactical-dim bg-tactical-border/50 px-1.5 py-0.5">{systemAlerts.length}</span>
                     </div>
-                    <div className="text-[10px] text-white mt-1">{a.title}</div>
-                    <div className="text-[9px] text-tactical-dim mt-0.5">{a.description}</div>
-                    {a.solutions?.length > 0 && (
-                      <div className="flex gap-1 mt-2">
-                        {a.solutions.map(sid => (
-                          <button key={sid} onClick={() => { applySolution(sid); setShowNotifications(false); }}
-                            className="px-2 py-0.5 text-[8px] font-bold uppercase bg-white text-black hover:bg-tactical-green transition-colors">
-                            {solutionCatalog[sid]?.title || sid}
-                          </button>
-                        ))}
+                    <button onClick={() => setShowNotifications(false)} className="text-tactical-dim hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                    </button>
+                  </div>
+
+                  {/* Body */}
+                  <div className="flex-1 overflow-y-auto no-scrollbar">
+                    {systemAlerts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 gap-3">
+                        <span className="material-symbols-outlined text-[32px] text-tactical-border">notifications_none</span>
+                        <span className="text-[10px] text-tactical-dim italic">No alerts yet. Start the simulation.</span>
                       </div>
+                    ) : (
+                      <>
+                        {/* Critical alerts */}
+                        {systemAlerts.filter(a => a.severity === 'critical').length > 0 && (
+                          <div>
+                            <div className="px-5 py-2 bg-[#1a0808] border-b border-tactical-red-bright/10 text-[8px] font-sans font-bold tracking-[0.2em] uppercase text-tactical-red-bright flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-tactical-red-bright rounded-full animate-pulse"></div>
+                              Critical ({systemAlerts.filter(a => a.severity === 'critical').length})
+                            </div>
+                            {systemAlerts.filter(a => a.severity === 'critical').slice(0, 5).map(a => (
+                              <div key={a.uid} className="px-5 py-3 border-b border-tactical-border/30 hover:bg-[#160a0a] transition-colors group">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-1 h-full bg-tactical-red-bright shrink-0 mt-1 self-stretch rounded-full"></div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-[10px] font-sans font-bold text-white truncate">{a.title}</span>
+                                      <span className="text-[8px] text-tactical-dim font-mono shrink-0 ml-2">{a.timestamp}</span>
+                                    </div>
+                                    <p className="text-[9px] text-[#888] leading-relaxed">{a.description}</p>
+                                    {a.solutions?.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {a.solutions.slice(0, 3).map(sid => (
+                                          <button key={sid} onClick={() => { applySolution(sid); setShowNotifications(false); }}
+                                            className="px-2 py-1 text-[8px] font-sans font-bold uppercase bg-tactical-red-bright/10 text-tactical-red-bright border border-tactical-red-bright/20 hover:bg-tactical-red-bright hover:text-white transition-all">
+                                            <span className="material-symbols-outlined text-[10px] mr-0.5 align-middle">bolt</span>
+                                            {(solutionCatalog[sid]?.title || sid).split(' ').slice(0, 3).join(' ')}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {/* Warning alerts */}
+                        {systemAlerts.filter(a => a.severity === 'warning').length > 0 && (
+                          <div>
+                            <div className="px-5 py-2 bg-[#1a1400] border-b border-tactical-orange/10 text-[8px] font-sans font-bold tracking-[0.2em] uppercase text-tactical-orange flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-tactical-orange rounded-full"></div>
+                              Warning ({systemAlerts.filter(a => a.severity === 'warning').length})
+                            </div>
+                            {systemAlerts.filter(a => a.severity === 'warning').slice(0, 5).map(a => (
+                              <div key={a.uid} className="px-5 py-3 border-b border-tactical-border/30 hover:bg-[#141200] transition-colors">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-1 self-stretch bg-tactical-orange shrink-0 mt-1 rounded-full"></div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-[10px] font-sans font-bold text-white truncate">{a.title}</span>
+                                      <span className="text-[8px] text-tactical-dim font-mono shrink-0 ml-2">{a.timestamp}</span>
+                                    </div>
+                                    <p className="text-[9px] text-[#888] leading-relaxed">{a.description}</p>
+                                    {a.solutions?.length > 0 && (
+                                      <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {a.solutions.slice(0, 3).map(sid => (
+                                          <button key={sid} onClick={() => { applySolution(sid); setShowNotifications(false); }}
+                                            className="px-2 py-1 text-[8px] font-sans font-bold uppercase bg-tactical-orange/10 text-tactical-orange border border-tactical-orange/20 hover:bg-tactical-orange hover:text-black transition-all">
+                                            {(solutionCatalog[sid]?.title || sid).split(' ').slice(0, 3).join(' ')}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
-                ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
 
@@ -357,7 +437,7 @@ export default function App() {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={last30}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                     <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
                     <Tooltip content={<TacticalTooltip />} />
                     <Area type="monotone" dataKey="Daily_Deposits" name="Deposits" stroke="#04d45b" fill="#04d45b" fillOpacity={0.15} strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -386,7 +466,7 @@ export default function App() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={last30} barGap={-1}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                     <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
                     <Tooltip content={<TacticalTooltip />} />
                     <Bar dataKey="Daily_Loans_Given" name="Loans Issued" fill="#ff9933" fillOpacity={0.7} isAnimationActive={false} />
@@ -423,7 +503,7 @@ export default function App() {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={last7}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                     <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={['auto', 'auto']} />
                     <ReferenceLine y={100} stroke="#ff3333" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'BASEL III MIN (100%)', position: 'insideBottomRight', fill: '#ff3333', fontSize: 8 }} />
                     <Line type="monotone" dataKey="LCR" name="LCR %" stroke="#04d45b" strokeWidth={2} dot={{ r: 2, fill: '#04d45b' }} isAnimationActive={false} />
@@ -448,7 +528,7 @@ export default function App() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={last7}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={0} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                     <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} tickFormatter={fmtShort} />
                     <ReferenceLine y={0} stroke="#ff3333" strokeDasharray="4 2" strokeWidth={0.5} label={{ value: 'INSOLVENCY', position: 'insideBottomRight', fill: '#ff3333', fontSize: 8 }} />
                     <defs>
@@ -487,7 +567,7 @@ export default function App() {
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={survivalData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
-                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} />
+                    <XAxis dataKey="Date" tick={{ fontSize: 9, fill: '#555' }} axisLine={false} interval={2} tickFormatter={fmtDate} angle={-35} textAnchor="end" height={40} />
                     <YAxis tick={{ fontSize: 9, fill: '#555' }} axisLine={false} domain={[0, 'auto']} />
                     <ReferenceLine y={100} stroke="#d47b00" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'WARNING (100d)', position: 'insideTopRight', fill: '#d47b00', fontSize: 8 }} />
                     <ReferenceLine y={30} stroke="#ff3333" strokeDasharray="6 3" strokeWidth={1} label={{ value: 'CRITICAL (30d)', position: 'insideTopRight', fill: '#ff3333', fontSize: 8 }} />
