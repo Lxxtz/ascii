@@ -66,13 +66,9 @@ def step_simulation():
     # Build a simplified record for the email checker using the model's forecasts
     lcr = record.get("LCR", 999)
     lstm_survival = record.get("LSTM_Survival", 365)
-    prophet_survival = record.get("Prophet_Survival", 365)
 
     # Use the more conservative (lower) of the two survival forecasts
-    predicted_survival = min(
-        lstm_survival if lstm_survival is not None else 365,
-        prophet_survival if prophet_survival is not None else 365,
-    )
+    predicted_survival = lstm_survival if lstm_survival is not None else 365
 
     email_record = {
         **record,

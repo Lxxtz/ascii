@@ -7,17 +7,7 @@ import logging
 import torch
 import torch.nn as nn
 
-logging.getLogger('prophet').setLevel(logging.WARNING)
-logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 
-try:
-    from prophet import Prophet
-    import pandas as pd
-    PROPHET_AVAILABLE = True
-    print("[Engine] Prophet: loaded")
-except ImportError:
-    PROPHET_AVAILABLE = False
-    print("[Engine] Prophet: not installed (pip install prophet)")
 
 # ─── News Events with Severity Weights ──────────────────────────────
 NEWS_EVENTS = [
@@ -167,12 +157,8 @@ class BankSimulationEngine:
         self.feature_max = _pt_fmax.copy()
         self._lstm_survival = 365
 
-        # Prophet
         self.lcr_history = []
         self.date_history = []
-        self._prophet_survival = None
-        self._prophet_lower = None
-        self._prophet_upper = None
 
         self.history = []
 
@@ -411,66 +397,6 @@ class BankSimulationEngine:
         self._lstm_survival = max(0, min(365, smoothed))
         return self._lstm_survival
 
-    # ── Prophet Prediction ───────────────────────────────────────────
-    def _fit_prophet(self):
-        if not PROPHET_AVAILABLE or len(self.lcr_history) < 15:
-            return
-
-        # Use LCR as percentage + add crisis flag as regressor
-        lcr_pct = [lcr * 100 for lcr in self.lcr_history]
-        crisis_flags = []
-        for feat in self.feature_history[-len(self.lcr_history):]:
-            crisis_flags.append(feat[3])  # crisis_val from feature vector
-
-        df = pd.DataFrame({
-            'ds': pd.to_datetime(self.date_history),
-            'y': lcr_pct,
-            'crisis': crisis_flags[:len(lcr_pct)],
-        })
-
-        try:
-            m = Prophet(
-                changepoint_prior_scale=0.9,      # Very aggressive — reacts fast to trend shifts
-                changepoint_range=0.95,            # Detect changes in last 95% of data (not just 80%)
-                yearly_seasonality=False,
-                weekly_seasonality=False,
-                daily_seasonality=False,
-                uncertainty_samples=100,
-                n_changepoints=min(30, len(df) // 3),  # More changepoints for granularity
-            )
-            m.add_regressor('crisis', standardize=False)
-            m.fit(df)
-
-            # Build future dataframe with crisis regressor
-            future = m.make_future_dataframe(periods=365)
-            # Assume current crisis state continues into the future
-            current_crisis = crisis_flags[-1] if crisis_flags else 0.0
-            future['crisis'] = current_crisis
-            # For historical rows, use actual values
-            future.loc[:len(df)-1, 'crisis'] = df['crisis'].values
-
-            forecast = m.predict(future)
-            future_only = forecast[forecast['ds'] > df['ds'].max()]
-
-            self._prophet_survival = 365
-            self._prophet_lower = 365
-            self._prophet_upper = 365
-
-            for _, row in future_only.iterrows():
-                days_out = (row['ds'] - df['ds'].max()).days
-                if self._prophet_survival == 365 and row['yhat'] < 100:
-                    self._prophet_survival = days_out
-                if self._prophet_lower == 365 and row['yhat_lower'] < 100:
-                    self._prophet_lower = days_out
-                if self._prophet_upper == 365 and row['yhat_upper'] < 100:
-                    self._prophet_upper = days_out
-
-            if self.lcr_history[-1] < 1.0:
-                self._prophet_survival = 0
-                self._prophet_lower = 0
-
-        except Exception as e:
-            print(f"[Prophet] Fit error: {e}")
 
     # ── Main simulation tick ─────────────────────────────────────────
     def step(self):
@@ -587,18 +513,7 @@ class BankSimulationEngine:
         # ── LSTM prediction (every tick, it's instant) ──
         lstm_pred = self._predict_lstm(lcr)
 
-        # ── Prophet prediction ──
-        # Refit every 15 ticks normally, every 5 ticks during crisis
-        prophet_interval = 5 if self.is_crisis else 15
-        if self.day >= 15 and self.day % prophet_interval == 0:
-            self._fit_prophet()
 
-        # Prophet hard override: if LCR already <100%, survival = 0
-        prophet_pred = self._prophet_survival
-        if lcr < 1.0 and prophet_pred is not None:
-            prophet_pred = 0
-            self._prophet_survival = 0
-            self._prophet_lower = 0
 
         # ── Check for alerts ──
         net_deposit_flow = daily_in - daily_out
@@ -620,9 +535,7 @@ class BankSimulationEngine:
             "HQLA":                    round(self.current_hqla, 2),
             "LDR":                     round(ldr, 2),
             "LSTM_Survival":           lstm_pred,
-            "Prophet_Survival":        prophet_pred,
-            "Prophet_Lower":           self._prophet_lower,
-            "Prophet_Upper":           self._prophet_upper,
+
             "Daily_Deposits":          round(daily_in, 2),
             "Daily_Withdrawals":       round(daily_out, 2),
             "Daily_Loans_Given":       round(daily_l_given, 2),
@@ -677,9 +590,7 @@ class BankSimulationEngine:
                     f"(Fed Funds, VIX, 10Y Treasury, 4 crisis periods). Input: 30-day sliding window of "
                     f"[repo_rate, sentiment, loans_net_ratio, crisis_flag, LCR, hqla_ratio, LDR]. "
                     f"Output: {lstm_pred}d until LCR < 100%. "
-                    + (f"Prophet: Time-series model with crisis regressor, "
-                       f"changepoint_prior={0.9}, refitted every {prophet_interval} ticks. "
-                       f"Output: {prophet_pred}d (lower bound: {self._prophet_lower}d). " if PROPHET_AVAILABLE else "Prophet: not available. ")
+
                     + f"Feature vector: [repo={self.repo_rate:.2f}, sent={self.market_sentiment:.4f}, "
                     f"loansNet={loans_net/max(self.current_deposit_pool,1):.6f}, crisis={crisis_val}, "
                     f"lcr={lcr:.4f}, hqlaRatio={hqla_ratio:.4f}, ldr={ldr_ratio:.4f}]."
