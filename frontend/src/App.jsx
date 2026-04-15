@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine, ComposedChart
 } from 'recharts';
-import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity } from 'lucide-react';
+import { Play, Pause, AlertTriangle, RefreshCw, Rss, Shield, Check, X, Zap, TrendingDown, Activity, Mail, Settings } from 'lucide-react';
 import './index.css';
 
 // ─── Solution catalog (synced with backend SOLUTIONS) ───
@@ -27,6 +27,44 @@ function App() {
   const [successToasts, setSuccessToasts] = useState([]);
   const [appliedSolutionIds, setAppliedSolutionIds] = useState(new Set());
   const notifIdCounter = useRef(0);
+
+  // Email alert state
+  const [emailPanelOpen, setEmailPanelOpen] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({ sender_email: '', sender_password: '', recipient_email: '' });
+  const [emailConfigured, setEmailConfigured] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState(null);
+  const [emailAlertsFired, setEmailAlertsFired] = useState([]);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailError, setEmailError] = useState(null);
+
+  // Fetch email status on mount
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/email/status')
+      .then(r => r.json())
+      .then(d => { setEmailConfigured(d.is_configured); setEmailRecipient(d.recipient); })
+      .catch(() => {});
+  }, []);
+
+  const saveEmailConfig = async () => {
+    setEmailSaving(true);
+    setEmailError(null);
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/email/configure', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailConfig),
+      });
+      const result = await res.json();
+      if (result.status === 'configured') {
+        setEmailConfigured(true);
+        setEmailRecipient(result.recipient);
+        setEmailPanelOpen(false);
+      }
+    } catch (err) {
+      setEmailError('Failed to configure email. Check backend.');
+    }
+    setEmailSaving(false);
+  };
 
   const resetSimulation = async () => {
     setIsRunning(false);
@@ -120,6 +158,11 @@ function App() {
           const result = await response.json();
           setData(prev => [...prev, result.record]);
 
+          // Track email alerts fired
+          if (result.email_alerts && result.email_alerts.alerts_fired && result.email_alerts.alerts_fired.length > 0) {
+            setEmailAlertsFired(prev => [...prev, ...result.email_alerts.alerts_fired.map(a => ({ type: a, date: result.record.Date }))]);
+          }
+
           // Update active solutions
           if (result.active_solutions) {
             setActiveSolutions(result.active_solutions);
@@ -211,8 +254,101 @@ function App() {
             <AlertTriangle size={16} />
             Trigger Crisis
           </button>
+          <button
+            className="run-btn"
+            style={{
+              backgroundColor: emailConfigured ? '#166534' : 'transparent',
+              color: emailConfigured ? '#fff' : '#94a3b8',
+              border: emailConfigured ? 'none' : '1px solid #334155',
+              position: 'relative',
+            }}
+            onClick={() => setEmailPanelOpen(!emailPanelOpen)}
+            title={emailConfigured ? `Email alerts active → ${emailRecipient}` : 'Configure email alerts'}
+          >
+            <Mail size={16} />
+            {emailConfigured ? 'Alerts On' : 'Email'}
+            {emailConfigured && (
+              <span style={{
+                position: 'absolute', top: -4, right: -4,
+                width: 10, height: 10, borderRadius: '50%',
+                backgroundColor: '#22c55e',
+                border: '2px solid #0f172a',
+              }} />
+            )}
+          </button>
         </div>
       </header>
+
+      {/* ═══ Email Config Panel ═══ */}
+      {emailPanelOpen && (
+        <div className="email-config-panel">
+          <div className="email-config-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Settings size={16} />
+              <strong>Email Crisis Alerts</strong>
+              {emailConfigured && (
+                <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 4, backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', fontWeight: 600 }}>ACTIVE</span>
+              )}
+            </div>
+            <button className="dismiss-btn" onClick={() => setEmailPanelOpen(false)} style={{ border: 'none', padding: '0.25rem' }}>
+              <X size={14} />
+            </button>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.5rem 0 1rem' }}>
+            Sends automated Gmail alerts when <strong>LCR drops below 100%</strong> or <strong>predicted survival falls below 30 days</strong>.
+            Uses Gmail App Password (enable 2FA → generate at <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}>Google App Passwords</a>).
+          </p>
+          <div className="email-fields">
+            <div className="email-field">
+              <label>Sender Gmail</label>
+              <input
+                type="email"
+                placeholder="yourname@gmail.com"
+                value={emailConfig.sender_email}
+                onChange={e => setEmailConfig(prev => ({ ...prev, sender_email: e.target.value }))}
+              />
+            </div>
+            <div className="email-field">
+              <label>App Password</label>
+              <input
+                type="password"
+                placeholder="xxxx xxxx xxxx xxxx"
+                value={emailConfig.sender_password}
+                onChange={e => setEmailConfig(prev => ({ ...prev, sender_password: e.target.value }))}
+              />
+            </div>
+            <div className="email-field">
+              <label>Recipient Email</label>
+              <input
+                type="email"
+                placeholder="recipient@example.com"
+                value={emailConfig.recipient_email}
+                onChange={e => setEmailConfig(prev => ({ ...prev, recipient_email: e.target.value }))}
+              />
+            </div>
+            <button
+              className="run-btn"
+              style={{ alignSelf: 'flex-end', padding: '0.5rem 1.25rem' }}
+              onClick={saveEmailConfig}
+              disabled={emailSaving || !emailConfig.sender_email || !emailConfig.sender_password || !emailConfig.recipient_email}
+            >
+              {emailSaving ? 'Saving…' : emailConfigured ? 'Update' : 'Activate'}
+            </button>
+          </div>
+          {emailError && <p style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>{emailError}</p>}
+          {emailAlertsFired.length > 0 && (
+            <div style={{ marginTop: '1rem', borderTop: '1px solid #1e293b', paddingTop: '0.75rem' }}>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: '0.5rem' }}>Emails Sent</div>
+              {emailAlertsFired.slice(-5).map((a, i) => (
+                <div key={i} style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'flex', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                  <Mail size={12} style={{ marginTop: 2, color: '#22c55e' }} />
+                  <span>{a.type === 'lcr_below_100' ? 'LCR below 100%' : 'Survival below 30 days'} — {a.date}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {data.length === 0 ? (
         <div className="no-data">
