@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from liquidity_model import BankSimulationEngine, SOLUTIONS
 from email_alert import CrisisEmailAlert
+from auth import signup_user, login_user
 
 app = FastAPI()
 
@@ -99,6 +101,40 @@ def send_insolvency_report_api(payload: ReportPayload):
         return {"status": "success", "message": "Report sent"}
     else:
         return {"status": "error", "message": "Failed to send report"}
+
+# ══════════════════════════════════════════════════════════════════
+#  AUTHENTICATION ENDPOINTS
+# ══════════════════════════════════════════════════════════════════
+
+class SignupRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: Optional[str] = "viewer"
+    institution: Optional[str] = ""
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/signup")
+def api_signup(req: SignupRequest):
+    success, message, user_data = signup_user(
+        username=req.username,
+        email=req.email,
+        password=req.password,
+        role=req.role,
+        institution=req.institution,
+    )
+    return {"success": success, "message": message, "user": user_data}
+
+@app.post("/api/login")
+def api_login(req: LoginRequest):
+    success, message, user_data = login_user(
+        email=req.email,
+        password=req.password,
+    )
+    return {"success": success, "message": message, "user": user_data}
 
 @app.get("/")
 def read_root():

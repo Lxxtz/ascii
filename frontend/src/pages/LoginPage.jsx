@@ -1,16 +1,53 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Activity, ShieldAlert, Cpu } from 'lucide-react';
+import { Activity, ShieldAlert, Cpu, AlertTriangle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { apiUrl } from '../lib/api';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState('executive');
 
-  const handleLogin = (e) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login({ type: 'enterprise', role });
+    setError('');
+    setSuccess('');
+
+    if (!email.trim()) { setError('Email is required.'); return; }
+    if (!password) { setError('Password is required.'); return; }
+
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl('/api/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSuccess(`Welcome back, ${data.user.username}! Redirecting...`);
+        setTimeout(() => {
+          login(data.user);
+        }, 1000);
+      } else {
+        setError(data.message || 'Authentication failed.');
+      }
+    } catch (err) {
+      setError('Network error. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,7 +68,7 @@ export default function LoginPage() {
                Protocol: Alpha
              </div>
              <div className="px-3 py-1.5 border border-tactical-border text-[9px] uppercase tracking-widest text-[#555] font-bold">
-               Status: Verified
+               Status: Secured
              </div>
           </div>
         </div>
@@ -51,49 +88,56 @@ export default function LoginPage() {
             <p className="text-white text-2xl font-sans font-light">Authenticate Identity</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            
-            <div className="space-y-2">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-tactical-dim">Role Selection</label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <label className={`border p-3 cursor-pointer transition-all flex items-center justify-center gap-2 ${role === 'viewer' ? 'border-tactical-green bg-tactical-green/5 text-tactical-green' : 'border-tactical-border text-[#777] hover:border-[#555]'}`}>
-                  <input type="radio" name="role" value="viewer" className="hidden" checked={role === 'viewer'} onChange={() => setRole('viewer')} />
-                  <Activity size={14} />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">Viewer</span>
-                </label>
-                <label className={`border p-3 cursor-pointer transition-all flex items-center justify-center gap-2 ${role === 'analyst' ? 'border-tactical-green bg-tactical-green/5 text-tactical-green' : 'border-tactical-border text-[#777] hover:border-[#555]'}`}>
-                  <input type="radio" name="role" value="analyst" className="hidden" checked={role === 'analyst'} onChange={() => setRole('analyst')} />
-                  <Cpu size={14} />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">Analyst</span>
-                </label>
-                <label className={`border p-3 cursor-pointer transition-all flex items-center justify-center gap-2 ${role === 'executive' ? 'border-tactical-green bg-tactical-green/5 text-tactical-green' : 'border-tactical-border text-[#777] hover:border-[#555]'}`}>
-                  <input type="radio" name="role" value="executive" className="hidden" checked={role === 'executive'} onChange={() => setRole('executive')} />
-                  <ShieldAlert size={14} />
-                  <span className="text-[10px] uppercase font-bold tracking-wider">Executive</span>
-                </label>
-              </div>
+          {/* ── Status Messages ── */}
+          {error && (
+            <div className="mb-6 flex items-center gap-3 bg-[#1a0a0a] border border-red-500/30 px-4 py-3 text-xs text-red-400 animate-pulse">
+              <AlertTriangle size={16} className="shrink-0" /> {error}
             </div>
+          )}
+          {success && (
+            <div className="mb-6 flex items-center gap-3 bg-[#0a1a0a] border border-green-500/30 px-4 py-3 text-xs text-green-400">
+              <CheckCircle size={16} className="shrink-0" /> {success}
+            </div>
+          )}
 
+          <form onSubmit={handleLogin} className="space-y-6">
+
+            {/* Email */}
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-tactical-dim">Email Address</label>
               <input 
-                type="email" 
-                defaultValue="admin@fluxshield.com"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                autoComplete="email"
                 className="w-full bg-[#111] border border-tactical-border px-4 py-3 text-white text-sm focus:outline-none focus:border-tactical-green transition-colors" 
               />
             </div>
             
+            {/* Password */}
             <div className="space-y-2">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-tactical-dim">Access Key (Password)</label>
-              <input 
-                type="password" 
-                defaultValue="••••••••"
-                className="w-full bg-[#111] border border-tactical-border px-4 py-3 text-white text-sm focus:outline-none focus:border-tactical-green transition-colors font-mono tracking-widest" 
-              />
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-tactical-dim">Password</label>
+              <div className="relative">
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  autoComplete="current-password"
+                  className="w-full bg-[#111] border border-tactical-border px-4 py-3 text-white text-sm focus:outline-none focus:border-tactical-green transition-colors font-mono tracking-widest pr-10" 
+                />
+                <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white transition-colors">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
             </div>
 
-            <button type="submit" className="w-full bg-tactical-dim hover:bg-white text-black font-sans font-black text-xs tracking-widest uppercase py-4 transition-colors mt-4 shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-              Initiate Login Sequence
+            <button type="submit" disabled={loading}
+              className="w-full bg-tactical-dim hover:bg-white disabled:bg-[#555] disabled:cursor-not-allowed text-black font-sans font-black text-xs tracking-widest uppercase py-4 transition-colors mt-4 shadow-[0_0_20px_rgba(255,255,255,0.05)] flex justify-center items-center gap-2">
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Authenticating...</> : 'Initiate Login Sequence'}
             </button>
           </form>
 
