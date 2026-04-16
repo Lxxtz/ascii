@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, ShieldCheck, AlertTriangle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, ShieldCheck, AlertTriangle, CheckCircle, Loader2, Eye, EyeOff, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiUrl } from '../lib/api';
 
@@ -63,7 +63,16 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex w-full min-h-screen bg-tactical-bg text-tactical-text font-mono overflow-auto">
+    <div className="flex w-full min-h-screen bg-tactical-bg text-tactical-text font-mono overflow-auto relative">
+      {/* ➲ Clickable Institutional Logo (Top Left Corner) */}
+      <div 
+        className="absolute top-8 left-8 flex items-center gap-2 cursor-pointer group z-50 px-4 py-2 bg-black/40 backdrop-blur-md border border-tactical-border/50 rounded-sm hover:border-tactical-green/50 transition-all" 
+        onClick={() => navigate('/')}
+      >
+        <Activity className="text-tactical-green group-hover:animate-pulse" size={18} />
+        <span className="text-xs font-sans font-black text-white uppercase tracking-widest transition-opacity group-hover:opacity-70">FluxShield</span>
+      </div>
+
       {/* ── LEFT SIDE (Visuals) ── */}
       <div className="hidden lg:flex w-1/2 bg-[#090909] relative flex-col justify-center px-16 border-r border-tactical-border/50">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none"></div>
@@ -95,11 +104,6 @@ export default function SignupPage() {
       {/* ── RIGHT SIDE (Form) ── */}
       <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#0d0d0d] relative py-12">
         <div className="w-full max-w-md p-8">
-          
-          <div className="mb-10 lg:hidden">
-            <ShieldCheck size={32} className="text-tactical-dim mb-4" />
-            <h1 className="text-3xl font-sans font-black text-white uppercase tracking-tighter">FluxShield</h1>
-          </div>
 
           <div className="mb-8">
             <h2 className="text-xs font-bold text-tactical-dim uppercase tracking-[0.2em] mb-1">Onboarding Sequence</h2>
