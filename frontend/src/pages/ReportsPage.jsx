@@ -122,6 +122,18 @@ export default function ReportsPage() {
   const { logout, user } = useAuth();
 
   const role = user?.role?.toLowerCase() || 'executive';
+  if (role === 'viewer') {
+    return (
+      <div className="flex flex-col w-full h-screen bg-tactical-bg text-tactical-text font-mono items-center justify-center gap-4">
+        <Activity size={48} className="text-tactical-red-bright animate-pulse" />
+        <h1 className="text-xl font-sans font-black text-white uppercase tracking-tighter">Access Restricted</h1>
+        <p className="text-sm text-[#777] max-w-xs text-center">Your account level (Viewer) does not have authorization to access Institutional Ledgers.</p>
+        <button onClick={() => navigate('/dashboard')} className="mt-4 px-6 py-2 border border-tactical-border text-tactical-dim text-xs uppercase font-bold hover:text-white hover:border-white transition-all">
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   const [startDate, setStartDate] = useState('2026-03-01');
   const [endDate, setEndDate] = useState('2026-04-30');

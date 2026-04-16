@@ -387,7 +387,9 @@ export default function Dashboard() {
           <div className="h-4 w-px bg-tactical-border/50"></div>
           <nav className="flex gap-4">
             <button className="text-[10px] uppercase font-bold text-white transition-colors border-b-2 border-white pb-1">Live Dashboard</button>
-            <button onClick={() => navigate('/reports')} className="text-[10px] uppercase font-bold text-tactical-dim hover:text-white transition-colors">Reports & Ledgers</button>
+            {user?.role !== 'viewer' && (
+              <button onClick={() => navigate('/reports')} className="text-[10px] uppercase font-bold text-tactical-dim hover:text-white transition-colors">Reports & Ledgers</button>
+            )}
           </nav>
         </div>
 
